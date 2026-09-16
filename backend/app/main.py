@@ -9,9 +9,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
+from urllib.parse import parse_qs, urlparse, urlunparse
+
 from .tasks import store
 from .urls import validate_http_url, validate_thumb_url
 from .ytdlp_service import BROWSER_HEADERS, DOWNLOAD_DIR, download_video, parse_video
+
+
+def _normalize_douyin_url(url: str) -> str:
+    """把 www.douyin.com/jingxuan?modal_id=X 转成 www.douyin.com/video/X，
+    让 yt-dlp 自带的 douyin extractor 能识别。其他 URL 原样返回。
+    仅匹配 *.douyin.com（不包含 iesdouyin.com）。"""
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    if not (host == "douyin.com" or host.endswith(".douyin.com")):
+        return url
+    if "/jingxuan" not in parsed.path:
+        return url
+    modal_id = (parse_qs(parsed.query).get("modal_id") or [None])[0]
+    if not modal_id:
+        return url
+    return urlunparse(parsed._replace(path=f"/video/{modal_id}", query=""))
 
 app = FastAPI(title="Free Video Downloader", version="0.1.0")
 app.add_middleware(
@@ -45,6 +63,7 @@ def health():
 def parse(payload: UrlPayload):
     try:
         url = validate_http_url(payload.url)
+        url = _normalize_douyin_url(url)
         return parse_video(url)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
