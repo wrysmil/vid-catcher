@@ -1,0 +1,56 @@
+# Claude Code 统一入口
+
+## 规范优先级
+
+1. `harness-kit/core/routing.md` — 路由、阶段门禁、按判定加载（强制）
+2. 本文件 § 文件写入与阶段门禁（强制）
+3. `.claude/rules/leader.md` — Leader 行为规范
+4. 根目录 `AGENTS.md` — Harness 覆盖层有效
+
+## 文件写入与阶段门禁
+
+细则：`routing.md` § 阶段门禁、§ 用户话术 → Route。
+
+**文件写入**
+
+- 改仓库内文本（源码、配置、`.ai-runtime-artifacts/`）**只用** `Write` / `Edit`；改前先 `Read`。
+- **Shell 仅用于** 测试、lint、构建、git、只读查询。
+- **禁止** Shell 写文本：`echo … >`、Python/Node 一行写文件。
+
+**阶段门禁**
+
+| 用户说 | Route | 禁止（未获继续指令前） |
+| --- | --- | --- |
+| 写方案 / 出方案 / 设计 | `brainstorming` | 改业务代码、写 plan、派子 Agent、WORKTREE-INIT |
+| 写计划 / 实施计划 | `writing-plans` | 同上 |
+| 开始实现 / 直接做 / 并行执行 | 已过门禁后实现 | — |
+| 写计划然后执行 / 出方案并直接做 | **仅** writing-plans 或 brainstorming | 同轮禁止实现（见 `routing.md` § 组合指令） |
+
+- **同轮禁止：** Write 了 `specs/` / `plans/` / `decisions/` → **结束本轮**；不得同轮改业务代码、派发、WORKTREE-INIT。
+- **实现前置：** 用户**单独**说「开始实现 / 直接做 / 并行执行」；或 spec/plan `approved: true` 且非组合指令；或 Tier 0 / Tier 1（见 `routing.md` § 任务 Tier）。
+- **Tier 1 完成：** 须 Write `verifications/*-verification-lite.md`。
+- **暂停回复须含：** 产物路径、摘要、`## Next` 选项。
+- **产物 FM：** `status: draft`、`approved: false`；用户确认后改为 `approved: true`。
+
+## 每任务（必做）
+
+1. 首行：`「Harness：<route 或 "Tier 0 小改动" | "Tier 1 Leader 直做">」`
+2. 次行（stage skill / Tier 1+）：`Skills: <slug>@<path> loaded|skipped` — **先 Load 再交付**
+3. **沟通语言：** 对用户回复与子 Agent 派发/整合使用**中文**（`routing.md` § 沟通语言）
+4. **非 Tier 0**：Read `routing.md` 按 § 追加加载
+
+## 按 routing 判定加载（勿在会话开始预读）
+
+| 判定 | 再读（按序） |
+| --- | --- |
+| 设计 / spec | `brainstorming` skill → `core/artifacts.md`（勿用 `artifact-templates/spec.md` 作正文） |
+| 计划 | `writing-plans` skill → `artifacts.md` → `artifact-templates/plan.harness-overlay.md`；并行时 `dispatch.harness-overlay.md` |
+| 验证 / 跑命令 | `verification-before-completion` → `project.verification.md` |
+| 尾盘 / GROUP 收尾 / 「提测前检查」 | `verification-before-completion` → `collective-test.md` → `requesting-code-review` → `code-review.md` → `core/orchestration/dispatcher-workflow.md` §3 |
+| 决策 | `artifacts.md` + `artifact-templates/decision.md` |
+| 多 task / 已批准 plan + 委派 | `core/orchestration/dispatcher-workflow.md`（**硬触发**见 `routing.md` § WU 编排硬触发） |
+| Leader 直做 / Tier 1 | `verification-before-completion` → Write `verification-lite.md` |
+| 派发 WU（`wu_skills: auto`） | `core/orchestration/skill-preferences.md` |
+| Git | `git-xywh` + `project.git.md` |
+| 文档审查 | `document-review` skill → `artifact-templates/document-review.md` |
+| 改代码 / 验证（实现阶段） | `project.profile.md`、`context-map.md`（涉及模块时） |

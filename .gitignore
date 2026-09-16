@@ -1,0 +1,20 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tmp_downloads/
+node_modules/
+frontend/dist/
+.DS_Store
+*.log
+.env
+
+# Agent Harness
+harness-kit/
+.ai-runtime-artifacts/
+
+# Cursor / Claude 本机私有（含明文 MCP API key），禁止入库
+.cursor/mcp.json
+.mcp.json
+.claude/settings.json

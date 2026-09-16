@@ -1,0 +1,7 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+yt-dlp==2026.8.19
+requests==2.34.2
+python-multipart==0.0.20
+pytest==8.4.1
+httpx==0.28.1
