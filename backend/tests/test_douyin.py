@@ -80,3 +80,189 @@ def test_build_choices_shape():
     assert c["ext"] == "mp4"
     assert c["has_audio"] is True
     assert "无水印" in c["title"]
+
+
+# ─────────────────────────── 主流程 parse_video（Task 2） ───────────────────────────
+
+import responses
+
+from app.douyin_service import DOUYIN_API_BASE, DouyinUpstreamError, parse_video
+
+
+@responses.activate
+def test_parse_video_short_link_resolves_and_strips_watermark():
+    short_url = "https://v.douyin.com/abc123/"
+    video_id = "7123456789012345678"
+    final_url = f"https://www.iesdouyin.com/share/video/{video_id}/?extra=1"
+    playwm = (
+        "https://v26-cold.douyinvod.com/abcdef/index.m3u8"
+        "?signature=xx&playwm=1"
+    )
+    play_no_wm = (
+        "https://v26-cold.douyinvod.com/abcdef/index.m3u8"
+        "?signature=xx&play=1"
+    )
+
+    # 短链 302 → final_url；follow 时再请求一次 final_url，给 200 OK 即可
+    responses.add(
+        responses.HEAD,
+        short_url,
+        status=302,
+        headers={"Location": final_url},
+    )
+    responses.add(responses.HEAD, final_url, status=200)
+    # 公开 API
+    responses.add(
+        responses.GET,
+        f"{DOUYIN_API_BASE}/api/video/info",
+        json={
+            "code": 0,
+            "data": {
+                "title": "测试视频",
+                "cover": "https://p3.douyinpic.com/cover.jpg",
+                "duration": 30,
+                "play_url": play_no_wm,
+                "playwm_url": playwm,
+            },
+        },
+        status=200,
+    )
+
+    info = parse_video(short_url)
+
+    assert info["title"] == "测试视频"
+    assert info["duration"] == 30
+    assert info["extractor"] == "Douyin (API 解析)"
+    assert info["choices"][0]["id"] == "douyin-nowm"
+    # webpage_url 应包含原 short_url（不重写）
+    assert info["webpage_url"] == short_url
+    # thumbnail 走代理
+    assert info["thumbnail"] and info["thumbnail"].startswith("/api/thumbnail?url=")
+
+
+@responses.activate
+def test_parse_video_short_link_resolves_uses_redirect_chain():
+    """短链需要跟 HEAD 301/302 链到最终 URL。"""
+    short_url = "https://v.douyin.com/xyz/"
+    video_id = "7123456789012345679"
+    final_url = f"https://www.douyin.com/video/{video_id}"
+
+    responses.add(
+        responses.HEAD,
+        short_url,
+        status=301,
+        headers={"Location": "https://t.snssdk.com/redirect"},
+    )
+    responses.add(
+        responses.HEAD,
+        "https://t.snssdk.com/redirect",
+        status=302,
+        headers={"Location": final_url},
+    )
+    responses.add(responses.HEAD, final_url, status=200)
+    responses.add(
+        responses.GET,
+        f"{DOUYIN_API_BASE}/api/video/info",
+        json={
+            "code": 0,
+            "data": {
+                "title": "链式跳转",
+                "cover": "",
+                "duration": 12,
+                "playwm_url": "https://v26-cold/playwm/",
+                "play_url": "https://v26-cold/play/",
+            },
+        },
+        status=200,
+    )
+
+    info = parse_video(short_url)
+    assert info["title"] == "链式跳转"
+    assert info["duration"] == 12
+
+
+@responses.activate
+def test_parse_video_long_url_skips_redirect():
+    """长链不需要 HEAD，直接 regex 提 ID。"""
+    long_url = "https://www.douyin.com/video/7123456789012345678"
+    responses.add(
+        responses.GET,
+        f"{DOUYIN_API_BASE}/api/video/info",
+        json={
+            "code": 0,
+            "data": {
+                "title": "长链",
+                "cover": "",
+                "duration": 5,
+                "playwm_url": "https://v26-cold/playwm/",
+                "play_url": "",
+            },
+        },
+        status=200,
+    )
+    info = parse_video(long_url)
+    assert info["title"] == "长链"
+
+
+@responses.activate
+def test_parse_video_short_link_no_video_id_raises():
+    responses.add(
+        responses.HEAD,
+        "https://v.douyin.com/bad/",
+        status=302,
+        headers={"Location": "https://www.douyin.com/discover"},
+    )
+    try:
+        parse_video("https://v.douyin.com/bad/")
+    except DouyinUpstreamError as exc:
+        assert "短链" in str(exc) or "video_id" in str(exc)
+    else:
+        raise AssertionError("should raise")
+
+
+@responses.activate
+def test_parse_video_api_error_raises():
+    responses.add(
+        responses.GET,
+        f"{DOUYIN_API_BASE}/api/video/info",
+        json={"code": 1001, "msg": "video not found"},
+        status=200,
+    )
+    try:
+        parse_video("https://www.douyin.com/video/7123456789012345678")
+    except DouyinUpstreamError as exc:
+        assert "video not found" in str(exc)
+    else:
+        raise AssertionError("should raise")
+
+
+@responses.activate
+def test_parse_video_api_http_500_raises():
+    responses.add(
+        responses.GET,
+        f"{DOUYIN_API_BASE}/api/video/info",
+        status=500,
+        body="boom",
+    )
+    try:
+        parse_video("https://www.douyin.com/video/7123456789012345678")
+    except DouyinUpstreamError as exc:
+        assert "HTTP 500" in str(exc)
+    else:
+        raise AssertionError("should raise")
+
+
+@responses.activate
+def test_parse_video_api_missing_data_raises():
+    responses.add(
+        responses.GET,
+        f"{DOUYIN_API_BASE}/api/video/info",
+        json={"code": 0, "data": None},
+        status=200,
+    )
+    try:
+        parse_video("https://www.douyin.com/video/7123456789012345678")
+    except DouyinUpstreamError as exc:
+        assert "信息" in str(exc) or "无效" in str(exc)
+    else:
+        raise AssertionError("should raise")
