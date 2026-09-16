@@ -266,3 +266,120 @@ def test_parse_video_api_missing_data_raises():
         assert "信息" in str(exc) or "无效" in str(exc)
     else:
         raise AssertionError("should raise")
+
+
+# ─────────────────────────── download_video 流式下载（Task 3） ───────────────────────────
+
+from pathlib import Path
+
+import app.douyin_service as ds
+from app.douyin_service import download_video
+
+
+@responses.activate
+def test_download_video_streams_to_file_and_invokes_hook(tmp_path: Path):
+    play_url = "https://v26-cold.douyinvod.com/abc/play/"
+    body = b"FAKE_MP4_BYTES_" * 1000  # ~16KB
+
+    responses.add(
+        responses.GET,
+        play_url,
+        status=200,
+        body=body,
+        headers={"Content-Length": str(len(body))},
+    )
+
+    # 跳过真实短链/真实 API，monkeypatch 模块函数
+    orig_resolve = ds._resolve_video_id
+    orig_fetch = ds._fetch_video_info
+    ds._resolve_video_id = lambda url: "7123456789012345678"
+    ds._fetch_video_info = lambda vid: {
+        "title": "dl",
+        "cover": "",
+        "duration": 1,
+        "playwm_url": play_url,
+        "play_url": "",
+    }
+    try:
+        events = []
+        path = download_video(
+            "https://www.douyin.com/video/7123456789012345678",
+            "douyin-nowm",
+            tmp_path,
+            lambda e: events.append(e),
+        )
+    finally:
+        ds._resolve_video_id = orig_resolve
+        ds._fetch_video_info = orig_fetch
+
+    assert path.exists()
+    assert path.read_bytes() == body
+    statuses = [e["status"] for e in events]
+    assert "downloading" in statuses
+    assert "finished" in statuses
+
+
+@responses.activate
+def test_download_video_http_error_raises(tmp_path: Path):
+    play_url = "https://v26-cold.douyinvod.com/abc/play/"
+    responses.add(
+        responses.GET,
+        play_url,
+        status=403,
+        body="forbidden",
+    )
+    orig_resolve = ds._resolve_video_id
+    orig_fetch = ds._fetch_video_info
+    ds._resolve_video_id = lambda url: "7123456789012345678"
+    ds._fetch_video_info = lambda vid: {
+        "title": "dl",
+        "cover": "",
+        "duration": 1,
+        "playwm_url": play_url,
+        "play_url": "",
+    }
+    try:
+        try:
+            download_video(
+                "https://www.douyin.com/video/7123456789012345678",
+                "douyin-nowm",
+                tmp_path,
+                lambda e: None,
+            )
+        except DouyinUpstreamError as exc:
+            assert "HTTP 403" in str(exc)
+        else:
+            raise AssertionError("should raise")
+    finally:
+        ds._resolve_video_id = orig_resolve
+        ds._fetch_video_info = orig_fetch
+
+
+@responses.activate
+def test_download_video_missing_source_raises(tmp_path: Path):
+    """上游返回没有 playwm_url 也没 play_url，应抛错。"""
+    orig_resolve = ds._resolve_video_id
+    orig_fetch = ds._fetch_video_info
+    ds._resolve_video_id = lambda url: "7123456789012345678"
+    ds._fetch_video_info = lambda vid: {
+        "title": "dl",
+        "cover": "",
+        "duration": 1,
+        "playwm_url": "",
+        "play_url": "",
+    }
+    try:
+        try:
+            download_video(
+                "https://www.douyin.com/video/7123456789012345678",
+                "douyin-nowm",
+                tmp_path,
+                lambda e: None,
+            )
+        except DouyinUpstreamError as exc:
+            assert "视频源" in str(exc) or "无效" in str(exc)
+        else:
+            raise AssertionError("should raise")
+    finally:
+        ds._resolve_video_id = orig_resolve
+        ds._fetch_video_info = orig_fetch

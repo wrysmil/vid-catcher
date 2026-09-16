@@ -11,6 +11,8 @@
 from __future__ import annotations
 
 import re
+import time
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -164,3 +166,88 @@ def parse_video(url: str) -> dict:
         "formats": [],
         "choices": build_choices(),
     }
+
+
+def _make_progress_hook(hook):
+    """节流版 progress hook：每 0.3s 派发一次 downloading + 终态 finished。
+    当前 download_video 实现里直接派发，保留本函数为后续扩展。"""
+    last_emit = [0.0]
+
+    def inner(block_number, read_size, total_size):
+        if total_size <= 0:
+            return
+        now = time.monotonic()
+        if now - last_emit[0] >= 0.3 or (block_number * read_size) >= total_size:
+            downloaded = block_number * read_size
+            hook({
+                "status": "downloading",
+                "downloaded_bytes": downloaded,
+                "total_bytes": total_size,
+                "total_bytes_estimate": total_size,
+                "speed": None,
+                "eta": None,
+            })
+            last_emit[0] = now
+
+    return inner
+
+
+def download_video(
+    url: str,
+    format_id: str,
+    dest_dir: Path,
+    progress_hook,
+) -> Path:
+    """解析 → 拿到无水印播放地址 → 流式下载到 dest_dir/douyin.mp4。
+    返回最终文件路径。失败抛 DouyinUpstreamError。"""
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    video_id = _resolve_video_id(url)
+    data = _fetch_video_info(video_id)
+    play_url = strip_watermark(
+        data.get("playwm_url") or data.get("play_url") or ""
+    )
+    if not play_url:
+        raise DouyinUpstreamError("没拿到视频源，链接可能无效")
+
+    out_path = dest_dir / "douyin.mp4"
+    try:
+        with requests.get(
+            play_url,
+            headers={
+                "User-Agent": UA,
+                "Referer": "https://www.douyin.com/",
+            },
+            timeout=30,
+            stream=True,
+        ) as r:
+            if r.status_code >= 400:
+                raise DouyinUpstreamError(
+                    f"抖音源下载失败：HTTP {r.status_code}"
+                )
+            total = int(r.headers.get("Content-Length") or 0)
+            downloaded = 0
+            block_size = 64 * 1024
+            with open(out_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=block_size):
+                    if not chunk:
+                        continue
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    if total > 0:
+                        progress_hook({
+                            "status": "downloading",
+                            "downloaded_bytes": downloaded,
+                            "total_bytes": total,
+                            "total_bytes_estimate": total,
+                            "speed": None,
+                            "eta": None,
+                        })
+            progress_hook({"status": "finished"})
+    except requests.RequestException as exc:
+        raise DouyinUpstreamError(
+            f"抖音下载中断：{exc.__class__.__name__}"
+        ) from exc
+
+    if not out_path.exists() or out_path.stat().st_size == 0:
+        raise DouyinUpstreamError("下载完成但文件为空")
+    return out_path
