@@ -170,6 +170,14 @@ def _public_error(exc: Exception) -> str:
     text = str(exc).strip() or exc.__class__.__name__
     if "Unsupported URL" in text:
         return "这个链接 yt-dlp 还不认识，换 YouTube / B 站等平台视频试试"
+    if "Fresh cookies" in text:
+        return (
+            "抖音风控需要浏览器 cookie 才能拿到视频源。"
+            "请先在浏览器打开一次该抖音页面让 cookie 有效，"
+            "然后完整关闭浏览器（Cmd+Q），重启后端时设置 "
+            "YTDLP_COOKIES_FROM_BROWSER=chrome 或 brave / edge / safari。"
+            "无需登录。"
+        )
     if "412" in text or "Precondition Failed" in text:
         return (
             "B 站风控拦了（HTTP 412）。本机浏览器先打开过这个视频后，"
