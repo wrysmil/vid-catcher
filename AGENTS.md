@@ -5,7 +5,7 @@ description: Agent Harness 入口
 
 # AGENTS.md
 
-项目背景：**万能视频下载站（学习向）** — 本机/局域网学习项目，用 FastAPI 把 [yt-dlp](https://github.com/yt-dlp/yt-dlp) 薄封装成网页版视频下载器，配 Vue 3 + Vite 前端，目标是理解「薄封装开源引擎 + 转化向前端」的开发方式。后端 Python（`backend/`，FastAPI + 线程池任务表），前端 Vue 3（`frontend/`，Vite 代理 `/api` 到 8000）。一期明确**无数据库、无鉴权、无真实支付**，页面上的总结 / 翻译 / 批量是占位；合规边界是只下载用户有权保存的公开内容，不碰 DRM 与大会员。
+项目背景：**VidCatcher（万能视频下载 / 学习向）** — 本机/局域网学习项目，用 FastAPI 把 [yt-dlp](https://github.com/yt-dlp/yt-dlp) 薄封装成网页版视频下载器，配 Vue 3 + Vite 前端，目标是理解「薄封装开源引擎 + 转化向前端」的开发方式。后端 Python（`backend/`，FastAPI + 线程池任务表），前端 Vue 3（`frontend/`，Vite 代理 `/api` 到 8000）。一期明确**无数据库、无鉴权、无真实支付**，页面上的总结 / 翻译 / 批量是占位；合规边界是只下载用户有权保存的公开内容，不碰 DRM 与大会员。
 
 > 必读：`harness-kit/core/routing.md`（路由判定、阶段门禁、按判定加载）
 > AI 入口顺序：1. 本文件 → 2. `harness-kit/core/routing.md` → 3. 平台适配器入口

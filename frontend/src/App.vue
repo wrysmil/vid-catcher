@@ -7,8 +7,8 @@
             <path d="M8 5v14l11-7z" />
           </svg>
         </span>
-        SaveAny
-        <small>万能视频下载</small>
+        VidCatcher
+        <small>视频捕手</small>
       </a>
       <nav class="nav-links">
         <a href="#features">功能特性</a>
@@ -25,7 +25,7 @@
 
     <section id="top" class="hero">
       <div class="badge"><span class="dot"></span> 支持 18000+ 平台，永久免费使用</div>
-      <h1>万能视频下载器，<em>一键保存</em></h1>
+      <h1>视频捕手，<em>一键保存</em></h1>
       <p class="lead">
         粘贴视频链接，智能解析，支持多种清晰度下载。YouTube、Bilibili、抖音、TikTok...
         <br />
@@ -150,7 +150,7 @@
     </section>
 
     <section id="features" class="why">
-      <h2>为什么选择 SaveAny</h2>
+      <h2>为什么选择 VidCatcher</h2>
       <p>简单、快速、强大的视频下载体验</p>
       <div class="features">
         <article class="feature">
