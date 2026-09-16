@@ -383,3 +383,101 @@ def test_download_video_missing_source_raises(tmp_path: Path):
     finally:
         ds._resolve_video_id = orig_resolve
         ds._fetch_video_info = orig_fetch
+
+
+# ─────────────────────────── main.py URL 分流（Task 4） ───────────────────────────
+
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+client = TestClient(app)
+
+
+@responses.activate
+def test_api_parse_douyin_short_routes_to_douyin_service():
+    short_url = "https://v.douyin.com/abc/"
+    video_id = "7123456789012345678"
+    final_url = f"https://www.douyin.com/video/{video_id}"
+    responses.add(
+        responses.HEAD,
+        short_url,
+        status=302,
+        headers={"Location": final_url},
+    )
+    responses.add(responses.HEAD, final_url, status=200)
+    responses.add(
+        responses.GET,
+        f"{DOUYIN_API_BASE}/api/video/info",
+        json={
+            "code": 0,
+            "data": {
+                "title": "API 解析",
+                "cover": "",
+                "duration": 1,
+                "playwm_url": "https://v26-cold/playwm/",
+                "play_url": "",
+            },
+        },
+        status=200,
+    )
+    r = client.post("/api/parse", json={"url": short_url})
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["extractor"] == "Douyin (API 解析)"
+    assert data["choices"][0]["id"] == "douyin-nowm"
+
+
+@responses.activate
+def test_api_parse_douyin_upstream_failure_returns_502_chinese():
+    short_url = "https://v.douyin.com/abc/"
+    video_id = "7123456789012345678"
+    final_url = f"https://www.douyin.com/video/{video_id}"
+    responses.add(
+        responses.HEAD,
+        short_url,
+        status=302,
+        headers={"Location": final_url},
+    )
+    responses.add(responses.HEAD, final_url, status=200)
+    responses.add(
+        responses.GET,
+        f"{DOUYIN_API_BASE}/api/video/info",
+        json={"code": 9999, "msg": "boom"},
+        status=200,
+    )
+    r = client.post("/api/parse", json={"url": short_url})
+    assert r.status_code == 502
+    detail = r.json()["detail"]
+    assert "boom" in detail or "抖音" in detail
+
+
+def test_api_parse_non_douyin_url_passes_through_to_ytdlp(monkeypatch):
+    """非抖音 URL 走 ytdlp 链路；这里用 monkeypatch 替换 ytdlp_service.parse_video，
+    避免真实网络请求（yt-dlp 在没网时会跑很久且结果不定）。"""
+    import app.main as main_mod
+
+    called = {"flag": False}
+
+    def fake_parse_video(url):
+        called["flag"] = True
+        return {
+            "title": "yt-dlp mocked",
+            "thumbnail": None,
+            "duration": 1,
+            "extractor": "Generic",
+            "uploader": None,
+            "view_count": None,
+            "description": None,
+            "webpage_url": url,
+            "presets": [],
+            "formats": [],
+            "choices": [],
+        }
+
+    monkeypatch.setattr(main_mod, "parse_video", fake_parse_video)
+
+    r = client.post("/api/parse", json={"url": "https://www.youtube.com/watch?v=abc"})
+    assert r.status_code == 200, r.text
+    assert called["flag"] is True
+    assert r.json()["extractor"] == "Generic"
