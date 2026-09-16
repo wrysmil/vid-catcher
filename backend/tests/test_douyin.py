@@ -481,3 +481,24 @@ def test_api_parse_non_douyin_url_passes_through_to_ytdlp(monkeypatch):
     assert r.status_code == 200, r.text
     assert called["flag"] is True
     assert r.json()["extractor"] == "Generic"
+
+
+# ─────────────────────────── live 烟雾测试（Task 5；默认 skip） ───────────────────────────
+
+import os
+
+import pytest
+
+
+@pytest.mark.skipif(
+    os.environ.get("DOUYIN_SMOKE") != "1",
+    reason="set DOUYIN_SMOKE=1 to run live smoke test",
+)
+@pytest.mark.live
+def test_parse_real_short_link_smoke():
+    """真实短链 → 真实 API 拿一次。需 DOUYIN_SMOKE=1 + DOUYIN_SMOKE_URL。"""
+    if not os.environ.get("DOUYIN_SMOKE_URL"):
+        pytest.skip("set DOUYIN_SMOKE_URL to a real v.douyin.com short link")
+    info = parse_video(os.environ["DOUYIN_SMOKE_URL"])
+    assert info["title"]
+    assert info["choices"][0]["id"] == "douyin-nowm"
