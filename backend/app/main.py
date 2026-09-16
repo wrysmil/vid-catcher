@@ -9,12 +9,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
-from .douyin_service import (
-    DouyinUpstreamError,
-    download_video as douyin_download_video,
-    is_douyin_url,
-    parse_video as douyin_parse_video,
-)
 from .tasks import store
 from .urls import validate_http_url, validate_thumb_url
 from .ytdlp_service import BROWSER_HEADERS, DOWNLOAD_DIR, download_video, parse_video
@@ -51,13 +45,9 @@ def health():
 def parse(payload: UrlPayload):
     try:
         url = validate_http_url(payload.url)
-        if is_douyin_url(url):
-            return douyin_parse_video(url)
         return parse_video(url)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except DouyinUpstreamError as exc:
-        raise HTTPException(status_code=502, detail=f"抖音解析失败：{exc}") from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail=_public_error(exc)) from exc
 
@@ -132,7 +122,6 @@ def _run_download(task_id: str) -> None:
     if not task:
         return
     store.update(task_id, status="downloading")
-    download_fn = douyin_download_video if is_douyin_url(task.url) else download_video
 
     def hook(event: dict) -> None:
         status = event.get("status")
@@ -152,18 +141,13 @@ def _run_download(task_id: str) -> None:
 
     try:
         dest = DOWNLOAD_DIR / task_id
-        path = download_fn(task.url, task.format_id, dest, hook)
+        path = download_video(task.url, task.format_id, dest, hook)
         store.update(task_id, status="finished", progress=1.0, filename=str(path))
     except Exception as exc:
         store.update(task_id, status="error", error=_public_error(exc))
 
 
 def _public_error(exc: Exception) -> str:
-    if isinstance(exc, DouyinUpstreamError):
-        text = str(exc).strip() or exc.__class__.__name__
-        if len(text) > 240:
-            text = text[:237] + "..."
-        return text
     text = str(exc).strip() or exc.__class__.__name__
     if "Unsupported URL" in text:
         return "这个链接 yt-dlp 还不认识，换 YouTube / B 站等平台视频试试"
