@@ -3,12 +3,13 @@
     <header class="nav">
       <a class="brand" href="#top">
         <span class="logo">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z" />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </span>
-        VidCatcher
-        <small>视频捕手</small>
+        <span class="brand-name">VidCatcher</span>
+        <span class="brand-tag">视频捕手</span>
       </a>
       <nav class="nav-links">
         <a href="#features">功能特性</a>
@@ -23,188 +24,227 @@
       </button>
     </header>
 
-    <section id="top" class="hero">
-      <div class="badge"><span class="dot"></span> 支持 18000+ 平台，永久免费使用</div>
-      <h1>视频捕手，<em>一键保存</em></h1>
-      <p class="lead">
-        粘贴视频链接，智能解析，支持多种清晰度下载。YouTube、Bilibili、抖音、TikTok...
-        <br />
-        随时随地，想下就下
-      </p>
-
-      <form class="capsule" @submit.prevent="parseAll">
-        <div class="field">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L10.7 5.24" />
-            <path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 1 0 7.07 7.07L13.3 18.76" />
-          </svg>
-          <input
-            v-model="rawInput"
-            type="url"
-            placeholder="https://www.youtube.com/watch?v=... 粘贴视频链接"
-            autocomplete="off"
-            :disabled="parsing"
-          />
+    <main>
+      <section id="top" class="hero">
+        <div class="hero-deco" aria-hidden="true">
+          <span class="orb orb-a"></span>
+          <span class="orb orb-b"></span>
         </div>
-        <button type="submit" :disabled="parsing">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.4-3.4" />
-          </svg>
-          {{ parsing ? "解析中" : "解析视频" }}
-        </button>
-      </form>
+        <div class="hero-inner">
+          <div class="badge"><span class="dot"></span> 支持 1800+ 平台，永久免费使用</div>
+          <h1>视频捕手，<em>一键保存</em></h1>
+          <p class="lead">
+            粘贴视频链接，智能解析，支持多种清晰度下载。YouTube、Bilibili、抖音、TikTok...
+            <br />
+            随时随地，想下就下
+          </p>
 
-      <div class="tries">
-        试一试：
-        <button type="button" @click="useDemo('https://www.youtube.com/watch?v=YE7VzlLtp-4')">YouTube</button>
-        <button type="button" @click="useDemo('https://www.bilibili.com/video/BV1xx411c7mD')">Bilibili</button>
-        <button type="button" @click="useDemo('https://x.com/i/status/20')">Twitter/X</button>
-      </div>
-      <p v-if="error" class="error-line">{{ error }}</p>
-    </section>
-
-    <section v-if="results.length" class="results">
-      <article v-for="item in results" :key="item.key" class="result-card">
-        <div class="result-head">
-          <div class="thumb-wrap">
-            <img
-              v-if="hasRealThumb(item.thumbnail)"
-              class="thumb"
-              :src="item.thumbnail"
-              :alt="item.title"
-              @error="item.thumbnail = ''"
-            />
-            <div v-else class="thumb thumb-fallback" aria-hidden="true">
-              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                <rect x="3" y="6" width="18" height="12" rx="2" />
-                <path d="M10 10v4l4-2z" fill="currentColor" stroke="none" />
+          <form class="capsule" @submit.prevent="parseAll">
+            <div class="field">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.4-3.4" />
               </svg>
-              <span>{{ (item.title || "未命名视频").slice(0, 2) }}</span>
+              <input
+                v-model="rawInput"
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=... 粘贴视频链接"
+                autocomplete="off"
+                :disabled="parsing"
+              />
             </div>
-            <span v-if="item.duration" class="duration">{{ formatClock(item.duration) }}</span>
-          </div>
-          <div class="result-meta">
-            <h3>{{ item.title }}</h3>
-            <div class="byline">
-              <span class="uploader">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="8" r="3" />
-                  <path d="M5 20a7 7 0 0 1 14 0" />
-                </svg>
-                {{ item.uploader || "未知作者" }}
-              </span>
-              <span class="platform">{{ displayPlatform(item.extractor) }}</span>
-              <span v-if="item.viewCount" class="views">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-                </svg>
-                {{ formatViews(item.viewCount) }}
-              </span>
-            </div>
-            <p v-if="item.description" class="desc">{{ item.description }}</p>
-          </div>
-        </div>
+            <button type="submit" :disabled="parsing || !hasInput">
+              <svg v-if="parsing" class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle class="spinner-ring" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="spinner-arc" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.4-3.4" />
+              </svg>
+              {{ parsing ? "解析中..." : "解析视频" }}
+            </button>
+          </form>
 
-        <div class="quality">
-          <div class="quality-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-              <path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" />
-            </svg>
-            选择清晰度和格式
+          <div class="tries">
+            试一试：
+            <button type="button" @click="useDemo('https://www.youtube.com/watch?v=dQw4w9WgXcQ')">YouTube</button>
+            <button type="button" @click="useDemo('https://www.bilibili.com/video/BV1GJ411x7h7')">Bilibili</button>
+            <button type="button" @click="useDemo('https://x.com/elonmusk/status/1234567890')">Twitter/X</button>
           </div>
-          <div class="quality-grid">
-            <button
-              v-for="fmt in item.choices"
-              :key="fmt.id"
-              type="button"
-              class="quality-card"
-              :class="{ active: item.selected === fmt.id }"
-              @click="item.selected = fmt.id"
-            >
-              <span class="quality-icon" aria-hidden="true">
-                <svg v-if="fmt.kind === 'audio'" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 3v10.55A4 4 0 1 0 14 17V8h4V3h-6z" />
+          <p v-if="error" class="error-line">{{ error }}</p>
+        </div>
+      </section>
+
+      <section v-if="results.length" class="results">
+        <article v-for="item in results" :key="item.key" class="result-card">
+          <div class="result-head">
+            <div class="thumb-wrap">
+              <img
+                v-if="hasRealThumb(item.thumbnail)"
+                class="thumb"
+                :src="item.thumbnail"
+                :alt="item.title"
+                @error="item.thumbnail = ''"
+              />
+              <div v-else class="thumb thumb-fallback" aria-hidden="true">
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="6" width="18" height="12" rx="2" />
+                  <path d="M10 10v4l4-2z" fill="currentColor" stroke="none" />
+                </svg>
+                <span>{{ (item.title || "未命名视频").slice(0, 2) }}</span>
+              </div>
+              <span v-if="item.duration" class="duration">{{ formatClock(item.duration) }}</span>
+            </div>
+            <div class="result-meta">
+              <h3>{{ item.title }}</h3>
+              <div class="byline">
+                <span class="uploader">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="8" r="3" />
+                    <path d="M5 20a7 7 0 0 1 14 0" />
+                  </svg>
+                  {{ item.uploader || "未知作者" }}
+                </span>
+                <span class="platform">{{ displayPlatform(item.extractor) }}</span>
+                <span v-if="item.viewCount" class="views">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                  </svg>
+                  {{ formatViews(item.viewCount) }}
+                </span>
+              </div>
+              <p v-if="item.description" class="desc">{{ item.description }}</p>
+            </div>
+          </div>
+
+          <div class="quality">
+            <h4 class="quality-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                <path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" />
+              </svg>
+              选择清晰度和格式
+            </h4>
+            <div class="quality-grid">
+              <button
+                v-for="fmt in item.choices"
+                :key="fmt.id"
+                type="button"
+                class="quality-card"
+                :class="{ active: item.selected === fmt.id }"
+                @click="item.selected = fmt.id"
+              >
+                <span class="quality-icon" aria-hidden="true">
+                  <svg v-if="fmt.kind === 'audio'" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3v10.55A4 4 0 1 0 14 17V8h4V3h-6z" />
+                  </svg>
+                  <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="6" width="18" height="12" rx="2" />
+                    <path d="M10 10v4l4-2z" />
+                  </svg>
+                </span>
+                <span class="quality-copy">
+                  <strong>{{ fmt.title || fmt.label }}</strong>
+                  <small>{{ fmt.subtitle || fmt.note }}</small>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div class="download-row">
+            <div class="progress-track" :class="{ show: item.task }">
+              <div
+                class="progress-fill"
+                :style="{ width: `${Math.round((item.task?.progress || 0) * 100)}%` }"
+              />
+            </div>
+            <div class="download-actions">
+              <button class="cta" type="button" :disabled="item.busy" @click="downloadItem(item)">
+                <svg v-if="item.busy && item.task?.status === 'downloading'" class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <circle class="spinner-ring" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="spinner-arc" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
                 <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="6" width="18" height="12" rx="2" />
-                  <path d="M10 10v4l4-2z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4-4 4m0 0-4-4m4 4V4" />
                 </svg>
-              </span>
-              <span class="quality-copy">
-                <strong>{{ fmt.title || fmt.label }}</strong>
-                <small>{{ fmt.subtitle || fmt.note }}</small>
-              </span>
-            </button>
+                {{ ctaLabel(item) }}
+              </button>
+              <span v-if="selectedLabel(item)" class="selected-hint">已选择：{{ selectedLabel(item) }}</span>
+            </div>
           </div>
+        </article>
+      </section>
+
+      <section id="features" class="section">
+        <h2>为什么选择 <span class="accent">VidCatcher</span></h2>
+        <p class="section-sub">简单、快速、强大的视频下载体验</p>
+        <div class="features">
+          <article v-for="f in features" :key="f.title" class="feature-card">
+            <span class="feature-icon" :class="f.tone">{{ f.icon }}</span>
+            <h3>{{ f.title }}</h3>
+            <p>{{ f.desc }}</p>
+          </article>
         </div>
+      </section>
 
-        <div v-if="item.task" class="progress">
-          <span :style="{ width: `${Math.round((item.task.progress || 0) * 100)}%` }" />
+      <section id="plans" class="section alt">
+        <h2>选择适合你的方案</h2>
+        <p class="section-sub">免费版满足日常使用，VIP 解锁全部高级功能</p>
+        <div class="plans">
+          <article class="plan">
+            <h3>免费学习版</h3>
+            <p class="plan-desc">满足基础下载需求</p>
+            <div class="price"><strong>¥0</strong><small>/永久</small></div>
+            <ul class="plan-list">
+              <li v-for="t in freePlan" :key="t">{{ t }}</li>
+            </ul>
+            <button class="plan-btn" type="button" @click="showToast">当前方案</button>
+          </article>
+          <article class="plan vip">
+            <span class="vip-badge">🔥 推荐</span>
+            <h3>VIP 高级版</h3>
+            <p class="plan-desc">解锁全部功能，无限制使用</p>
+            <div class="price"><strong>¥9.9</strong><small>/月</small></div>
+            <ul class="plan-list">
+              <li v-for="t in vipPlan" :key="t">{{ t }}</li>
+            </ul>
+            <button class="plan-btn light" type="button" @click="showToast">开通 VIP</button>
+          </article>
         </div>
-        <button class="cta" type="button" :disabled="item.busy" @click="downloadItem(item)">
-          {{ ctaLabel(item) }}
-        </button>
-      </article>
-    </section>
+      </section>
 
-    <section id="features" class="why">
-      <h2>为什么选择 VidCatcher</h2>
-      <p>简单、快速、强大的视频下载体验</p>
-      <div class="features">
-        <article class="feature">
-          <h3>一键解析</h3>
-          <p>粘贴链接即可读出封面、时长和清晰度，不用翻平台设置。</p>
-        </article>
-        <article class="feature">
-          <h3>自选画质</h3>
-          <p>最高清、1080p、720p 或只要音频，手机流量也能控。</p>
-        </article>
-        <article class="feature">
-          <h3>随时随地</h3>
-          <p>浏览器打开就能下，电脑和手机同一套页面。</p>
-        </article>
-      </div>
-    </section>
+      <section id="platforms" class="section">
+        <h2>支持全球 <span class="accent">1800+</span> 平台</h2>
+        <p class="section-sub">几乎覆盖所有主流视频、音频、社交媒体平台</p>
+        <div class="platforms">
+          <span v-for="p in platforms" :key="p.name" class="platform-chip">{{ p.icon }} {{ p.name }}</span>
+        </div>
+      </section>
 
-    <section id="plans" class="why">
-      <h2>套餐价格</h2>
-      <p>学习版先免费用下载，增值能力稍后开放</p>
-      <div class="plans">
-        <article class="plan">
-          <h3>免费学习版</h3>
-          <p>解析 + 选清晰度 + 下载到此设备。无账号、无数据库。</p>
-        </article>
-        <article class="plan hot">
-          <h3>VIP 预告</h3>
-          <p>视频总结、字幕翻译、无限批量，先占位，不接真实支付。</p>
-          <button type="button" @click="showToast">开通 VIP</button>
-        </article>
-      </div>
-    </section>
-
-    <section id="platforms" class="why">
-      <h2>支持平台</h2>
-      <p>能力来自 yt-dlp，站点改版时升级引擎即可</p>
-      <div class="platforms">
-        <article class="platform-card"><h3>YouTube</h3><p>讲座、公开课</p></article>
-        <article class="platform-card"><h3>Bilibili</h3><p>课堂回放</p></article>
-        <article class="platform-card"><h3>抖音 / TikTok</h3><p>短视频备忘</p></article>
-        <article class="platform-card"><h3>Twitter / X</h3><p>媒体贴</p></article>
-      </div>
-    </section>
-
-    <footer class="footer">
-      学习项目，引擎是开源的 yt-dlp。请尊重版权，只保存你有权下载的内容。<br />
-      不要拿去对抗平台风控，也不要公开当盗链站用。
-    </footer>
+      <footer class="footer">
+        <div class="footer-brand">
+          <span class="logo small">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </span>
+          <span>VidCatcher</span>
+        </div>
+        <p class="footer-note">
+          学习项目，引擎是开源的 yt-dlp。请尊重版权，只保存你有权下载的内容。<br />
+          不要拿去对抗平台风控，也不要公开当盗链站用。
+        </p>
+        <p class="footer-copy">© {{ new Date().getFullYear() }} VidCatcher</p>
+      </footer>
+    </main>
     <div v-if="toast" class="toast">{{ toast }}</div>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, ref } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 
 const rawInput = ref("");
 const parsing = ref(false);
@@ -212,6 +252,40 @@ const error = ref("");
 const results = ref([]);
 const toast = ref("");
 const timers = new Set();
+
+const hasInput = computed(() => rawInput.value.trim().length > 0);
+
+const features = [
+  { icon: "🌐", tone: "blue", title: "支持 1800+ 平台", desc: "YouTube、Bilibili、抖音、TikTok、Twitter 等全球主流平台" },
+  { icon: "⚡", tone: "amber", title: "极速解析下载", desc: "智能解析视频链接，自动匹配最优下载方式，速度快人一步" },
+  { icon: "📱", tone: "green", title: "手机也能用", desc: "完美适配手机浏览器，随时随地，想下就下，无需安装 App" },
+  { icon: "🎬", tone: "purple", title: "多种清晰度", desc: "支持从 360p 到 4K 多种清晰度选择，满足不同场景需求" },
+];
+
+const freePlan = [
+  "解析 + 选清晰度 + 下载到此设备",
+  "最高支持 720p 清晰度",
+  "支持 1800+ 平台",
+  "无账号、无数据库",
+];
+
+const vipPlan = [
+  "无限次下载，无任何限制",
+  "批量下载，一键搞定",
+  "字幕下载与翻译",
+  "AI 视频内容总结",
+];
+
+const platforms = [
+  { icon: "▶️", name: "YouTube" },
+  { icon: "📺", name: "Bilibili" },
+  { icon: "🎵", name: "抖音 / TikTok" },
+  { icon: "🐦", name: "Twitter / X" },
+  { icon: "📷", name: "Instagram" },
+  { icon: "📘", name: "Facebook" },
+  { icon: "🎬", name: "Vimeo" },
+  { icon: "🎧", name: "SoundCloud" },
+];
 
 function useDemo(url) {
   rawInput.value = url;
@@ -269,7 +343,8 @@ async function parseAll() {
         task: null,
       });
     }
-    results.value = [...next, ...results.value];
+    // 每次解析替换上一批结果（对齐开源项目：单结果视图，不做堆叠）
+    results.value = next;
   } catch (err) {
     error.value = err.message;
   } finally {
@@ -324,12 +399,17 @@ function pollTask(item, taskId) {
   timers.add(timer);
 }
 
+function selectedLabel(item) {
+  const fmt = item.choices.find((c) => c.id === item.selected);
+  return fmt ? fmt.title || fmt.label || "" : "";
+}
+
 function ctaLabel(item) {
-  if (!item.task) return "下载到此设备";
+  if (!item.task) return "立即下载";
   if (item.task.status === "downloading") return `下载中 ${Math.round((item.task.progress || 0) * 100)}%`;
-  if (item.task.status === "queued") return "排队中";
+  if (item.task.status === "queued") return "排队中...";
   if (item.task.status === "finished") return "已开始保存";
-  return "下载到此设备";
+  return "立即下载";
 }
 
 function formatClock(seconds) {
@@ -344,15 +424,17 @@ function formatClock(seconds) {
 function formatViews(count) {
   const n = Number(count);
   if (!Number.isFinite(n)) return "";
+  if (n >= 100000000) return `${(n / 100000000).toFixed(1).replace(/\.0$/, "")}亿`;
   if (n >= 10000) return `${(n / 10000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, "")}万`;
   return n.toLocaleString("en-US");
 }
 
 function displayPlatform(extractor) {
   const key = String(extractor || "").toLowerCase();
-  if (key.includes("bili")) return "BiliBili";
+  if (key.includes("bili")) return "Bilibili";
   if (key.includes("youtube")) return "YouTube";
-  if (key.includes("tiktok") || key.includes("douyin")) return "TikTok";
+  if (key.includes("douyin")) return "抖音";
+  if (key.includes("tiktok")) return "TikTok";
   if (key.includes("twitter") || key === "x") return "Twitter/X";
   return extractor || "未知平台";
 }
