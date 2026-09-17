@@ -1,0 +1,29 @@
+请先读取 harness-kit/core/routing.md 和 harness-kit/init/bootstrap.prompt.md。
+这是一个新项目刚接入 Agent Harness，请按 Harness 初始化流程处理：
+1. 清理 harness-kit/ 随仓库携带的 git 元数据，并更新项目根 .gitignore：删除 harness-kit/.git/（以及存在的 .gitignore / .gitattributes / .gitmodules；不要动项目自身的 .git/），在项目根 .gitignore 追加（保留已有内容） `harness-kit/*` 和 `.ai-runtime-artifacts/` 两条。
+2. 创建/更新根目录 AI 入口文件 `AGENTS.md`（引用 `harness-kit/core/routing.md`）。
+3. 运行 `bash harness-kit/scripts/harness-project.sh project`，自动检测平台并投影平台层（skills、rules 到 .claude/、.cursor/、.trae/；Claude 平台另投影 hooks 模板）。
+   **根据检测到的平台检查对应文件（用 test -f / test -d / test -x 自检，缺一即视为投影失败并补跑 --force）：**
+
+   **Claude 平台层文件：**
+   - `.claude/rules/leader.md`（always-loaded；Leader 行为规范）
+   - `.claude/skills/` 下 skill 镜像（由 `harness-project.sh` 从 `harness-kit/.agents/skills/` 自动投影）
+   - `.claude/hooks/block-native-plan-mode.sh`、`.claude/hooks/content/`、`settings.json.example`（opt-in：默认不启用 hooks）
+
+   **Trae 平台层文件：**
+   - `.trae/rules/ai-entry.md`（统一入口）
+   - `.trae/rules/trae-subagent-routing.md`（子 Agent 路由协议）
+   - `.trae/skills/` 下 skill 镜像（由 `harness-project.sh` 从 `harness-kit/.agents/skills/` 自动投影）
+
+   **Cursor 平台层文件：**
+   - `.cursor/rules/ai-entry.mdc`、`.cursor/rules/cursor-subagent-routing.mdc`
+   - `.cursor/skills/` 下 skill 镜像
+4. 如需安装或检查 AI runtime，请先说明会修改哪些本机环境，然后由你执行 harness-kit/scripts/install-ai-skills.sh。该脚本会按当前平台（harness-project.sh detect 结果）选择性执行平台对应的 ~/.<platform>/skills/ 检查。可用 --platform 显式指定。
+5. 创建 .ai-runtime-artifacts/ 及其子目录（含 execution-logs/ 与 execution-logs/tracking/）。
+6. 读取并执行 harness-kit/init/project-profiler.prompt.md（以 harness-kit/init/templates/ 为章节骨架，更新四份 project.*，用 project.profile 摘要替换 AGENTS.md 中的 {{PROJECT_BACKGROUND}}，并运行 harness-kit/scripts/harness-check.sh）。
+7. 汇总推断项、待确认项和验证结果；**平台层一段必须逐项列出**（根据检测到的平台）：
+   - Claude：rules 文件数与文件名、skills 镜像数、hooks 脚本数与 `settings.json.example` 是否存在
+   - Trae：rules 文件数与文件名、skills 镜像数、hooks 脚本数与 `settings.json.example` 是否存在
+   - Cursor：rules 文件数与文件名、skills 镜像数、hooks 配置是否完整
+
+详版步骤见 harness-kit/init/bootstrap.prompt.md。

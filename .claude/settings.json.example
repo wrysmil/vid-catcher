@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      {
+        "prompt": "run bash scripts",
+        "command": "bash"
+      },
+      {
+        "prompt": "read any file",
+        "path": "**"
+      }
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "onToolUse": [
+      {
+        "match": "EnterPlanMode|ExitPlanMode",
+        "command": "bash .claude/hooks/block-native-plan-mode.sh"
+      }
+    ]
+  },
+  "model": "claude-opus-4-7"
+}

@@ -1,0 +1,16 @@
+# Harness 编排默认配置（平台无关）
+# 适配器可在本地 settings 覆盖
+
+runtime:
+  max_parallel_agents: 3   # 硬顶 5
+  loop_mode: single-pass   # single-pass | maintenance | continuous（opt-in）
+
+orchestration:
+  dispatcher_doc: harness-kit/core/orchestration/dispatcher-workflow.md
+  skill_preferences: harness-kit/core/orchestration/skill-preferences.md
+  agents: .agents/agents/
+
+artifacts:
+  execution_logs: .ai-runtime-artifacts/execution-logs/
+  tracking: .ai-runtime-artifacts/execution-logs/tracking/
+  handoff: .ai-runtime-artifacts/execution-logs/HANDOFF.md

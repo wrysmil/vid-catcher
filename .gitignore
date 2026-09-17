@@ -10,11 +10,13 @@ frontend/dist/
 *.log
 .env
 
-# Agent Harness
-harness-kit/
-.ai-runtime-artifacts/
-
 # Cursor / Claude 本机私有（含明文 MCP API key），禁止入库
 .cursor/mcp.json
 .mcp.json
 .claude/settings.json
+
+# 本地缓存 / IDE / 调试工具产物
+.cache/
+.idea/
+.playwright-mcp/
+backend/tmp_douyin_probe/

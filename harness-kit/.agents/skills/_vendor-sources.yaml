@@ -1,0 +1,138 @@
+# 能力副本：复制来源（供 sync 脚本与维护者参考）
+# 更新日期：2026-06-30
+
+skills:
+  test-driven-development:
+    source: ~/.agents/skills/test-driven-development/SKILL.md
+    upstream: obra/superpowers + agent-skills 增强
+  verification-before-completion:
+    source: ~/.agents/skills/verification-before-completion/SKILL.md
+    upstream: obra/superpowers
+  systematic-debugging:
+    source: ~/.agents/skills/systematic-debugging/SKILL.md
+    upstream: obra/superpowers + agent-skills 增强
+  requesting-code-review:
+    source: ~/.agents/skills/requesting-code-review/
+    upstream: obra/superpowers
+    note: "sync copies SKILL.md + code-reviewer.md (copy_skill_dir)"
+  receiving-code-review:
+    source: ~/.agents/skills/receiving-code-review/SKILL.md
+    upstream: obra/superpowers
+  frontend-design:
+    source: ~/.agents/skills/frontend-design/SKILL.md
+    upstream: anthropics/skills (frontend-design)
+  agent-browser:
+    source: ~/.agents/skills/agent-browser/SKILL.md
+    upstream: inference.sh agent-browser
+  ui-ux-pro-max:
+    source: ~/.trae/skills/ui-ux-pro-max/
+    upstream: "ui-ux-pro-max (full directory: SKILL.md + data/ + scripts/)"
+    note: "sync copies entire directory, not SKILL.md only"
+
+  # ========================
+  # agent-skills 新增技能（2026-06-30）
+  # 来源: d:\workspace\ai\agent-skills\skills\ 和 references\
+  # 所有 SKILL.md 保留了 agent-skills 的原始方法论内容，
+  # 仅微调了产物落盘路径 → .ai-runtime-artifacts/
+  # ========================
+  code-review-and-quality:
+    source: d:\workspace\ai\agent-skills\skills\code-review-and-quality\SKILL.md
+    upstream: agent-skills
+    note: "五轴审查框架 + 8 种重构模式。与 requesting-code-review（流程纪律）互补"
+  source-driven-development:
+    source: d:\workspace\ai\agent-skills\skills\source-driven-development\SKILL.md
+    upstream: agent-skills
+    note: "STACK DETECTION + DETECT→FETCH→IMPLEMENT→CITE 四步法"
+  context-engineering:
+    source: d:\workspace\ai\agent-skills\skills\context-engineering\SKILL.md
+    upstream: agent-skills
+    note: "五级上下文层级 + 三种打包策略。Leader/WU 使用，产物通过 prompt 传递不落盘"
+  incremental-implementation:
+    source: d:\workspace\ai\agent-skills\skills\incremental-implementation\SKILL.md
+    upstream: agent-skills
+    note: "WU 内部增量切片（Rule 0~5）+ Vertical/Contract-First/Risk-First 三策略"
+  doubt-driven-development:
+    source: d:\workspace\ai\agent-skills\skills\doubt-driven-development\SKILL.md
+    upstream: agent-skills
+    note: "CLAIM→EXTRACT→DOUBT→RECONCILE→STOP 决策审查。Leader 旁路监控"
+  api-and-interface-design:
+    source: d:\workspace\ai\agent-skills\skills\api-and-interface-design\SKILL.md
+    upstream: agent-skills
+    note: "Contract First + Hyrum's Law + Validate at Boundaries。Plan Gate 使用"
+  security-and-hardening:
+    source: d:\workspace\ai\agent-skills\skills\security-and-hardening\SKILL.md
+    upstream: agent-skills
+    note: "OWASP Top 10 + LLM 安全 + 三层边界系统。安全审查 Agent 专用"
+  performance-optimization:
+    source: d:\workspace\ai\agent-skills\skills\performance-optimization\SKILL.md
+    upstream: agent-skills
+    note: "CWV 阈值 + N+1 检测 + INP 诊断。性能审查 Agent 按需启用"
+  code-simplification:
+    source: d:\workspace\ai\agent-skills\skills\code-simplification\SKILL.md
+    upstream: agent-skills
+    note: "Chesterton's Fence → 5 类信号 → 逐个变更。Simplify Pass 按需启用"
+  observability-and-instrumentation:
+    source: d:\workspace\ai\agent-skills\skills\observability-and-instrumentation\SKILL.md
+    upstream: agent-skills
+    note: "结构化日志 + RED 指标 + 分布式追踪。Ship Gate 使用"
+  shipping-and-launch:
+    source: d:\workspace\ai\agent-skills\skills\shipping-and-launch\SKILL.md
+    upstream: agent-skills
+    note: "Pre-Launch Checklist + 灰度计划 + 回滚方案。Ship Gate 按需启用"
+  interview-me:
+    source: d:\workspace\ai\agent-skills\skills\interview-me\SKILL.md
+    upstream: agent-skills
+    note: "需求澄清：Hypothesis + Confidence% → 一问一答 → 确认意图。Stage 0 前置"
+  frontend-ui-engineering:
+    source: d:\workspace\ai\agent-skills\skills\frontend-ui-engineering\SKILL.md
+    upstream: agent-skills
+    note: "a11y 检查清单 / 状态管理 / 性能工程参考"
+  browser-testing-with-devtools:
+    source: d:\workspace\ai\agent-skills\skills\browser-testing-with-devtools\SKILL.md
+    upstream: agent-skills
+    note: "Chrome DevTools MCP 浏览器测试：DOM 检查、控制台分析、网络请求、性能追踪、可访问性验证。替代 Playwright 做前端 UI 测试"
+
+  # ========================
+  # 编排（合并自三平台特化）
+  # 来源: claude-orchestration + cursor-orchestration + trae-orchestration 合并
+  # 新增: orchestration-patterns.md（来自 agent-skills references/）
+  # ========================
+  orchestration:
+    source: merged from claude-orchestration + cursor-orchestration + trae-orchestration
+    upstream: harness-kit（三合一）
+    note: "平台无关编排。SpawnWorker 绑定见 platform/<platform>/bindings.md。references/ 含 agent-skills orchestration-patterns.md"
+
+  # ========================
+  # agent-skills Reference 文件
+  # 来源: d:\workspace\ai\agent-skills\references\
+  # 纯知识文档，无需修改，按关联 Skill 放置
+  # ========================
+  references:
+    security-checklist:
+      source: d:\workspace\ai\agent-skills\references\security-checklist.md
+      upstream: agent-skills
+      placed_at: security-and-hardening/references/
+    performance-checklist:
+      source: d:\workspace\ai\agent-skills\references\performance-checklist.md
+      upstream: agent-skills
+      placed_at: performance-optimization/references/
+    accessibility-checklist:
+      source: d:\workspace\ai\agent-skills\references\accessibility-checklist.md
+      upstream: agent-skills
+      placed_at: frontend-ui-engineering/references/
+    observability-checklist:
+      source: d:\workspace\ai\agent-skills\references\observability-checklist.md
+      upstream: agent-skills
+      placed_at: observability-and-instrumentation/references/
+    testing-patterns:
+      source: d:\workspace\ai\agent-skills\references\testing-patterns.md
+      upstream: agent-skills
+      placed_at: test-driven-development/references/
+    definition-of-done:
+      source: d:\workspace\ai\agent-skills\references\definition-of-done.md
+      upstream: agent-skills
+      placed_at: verification-before-completion/references/
+    orchestration-patterns:
+      source: d:\workspace\ai\agent-skills\references\orchestration-patterns.md
+      upstream: agent-skills
+      placed_at: orchestration/references/

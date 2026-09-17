@@ -1,0 +1,87 @@
+platform: cursor
+matrix_version: 1
+capabilities:
+  routing.stage-gate:
+    status: supported
+    binding: "ai-entry.mdc + routing.md 阶段门禁"
+  routing.harness-declare:
+    status: supported
+    binding: "首句 Harness 声明"
+  orchestration.dispatch:
+    status: supported
+    binding: "orchestration → core/orchestration/dispatcher-workflow.md"
+  orchestration.leader:
+    status: supported
+    binding: "主 Agent Composer/Agent 模式"
+  orchestration.parallel-wu:
+    status: supported
+    binding: "并行 subagent/Task; max 3 default"
+  orchestration.dispatch-track:
+    status: supported
+    binding: "DISPATCH-TRACK append-only"
+  orchestration.worktree-sandbox:
+    status: supported
+    binding: "dispatcher §0 WORKTREE-INIT"
+  orchestration.collective-closeout:
+    status: supported
+    binding: "collective-test + reviewer + code-review"
+  orchestration.continuous-loop:
+    status: supported
+    binding: "core/orchestration/claude-continuous-loop.md opt-in（Cursor 走 continuous_mode）"
+  roles.coder:
+    status: supported
+    binding: "coder subagent"
+  roles.implementer:
+    status: supported
+    binding: "implementer"
+  roles.reviewer:
+    status: supported
+    binding: "reviewer readonly"
+  roles.test-engineer:
+    status: supported
+    binding: "test-engineer"
+  roles.smoke-tester:
+    status: supported
+    binding: "smoke-tester (agent-browser / chrome-devtools-mcp 二选一)"
+  roles.explorer:
+    status: supported
+    binding: "explorer / Task explore"
+  roles.debugger:
+    status: supported
+    binding: "debugger"
+  roles.web-investigator:
+    status: supported
+    binding: "web-investigator"
+  artifacts.runtime-layout:
+    status: supported
+    binding: ".ai-runtime-artifacts/"
+  artifacts.verification-lite:
+    status: supported
+    binding: "Tier 1 Leader 直做 → verification-lite.md"
+  skills.stage-load:
+    status: supported
+    binding: "Read SKILL.md / Skill 工具"
+  interaction.structured-ask:
+    status: supported
+    binding: "AskQuestion"
+  hooks.session-lifecycle:
+    status: manual
+    binding: "用户自行在 .cursor/hooks.json 配置（可选）"
+  extensions.mcp.servers:
+    status: manual
+    binding: "用户自行管理 .mcp.json"
+  git.worktree-script:
+    status: supported
+    binding: "git worktree + harness-worktree.sh"
+  verification.collective-test:
+    status: supported
+    binding: "Leader 跑 project.verification.md → Write *-collective-test.md"
+  verification.collective-review:
+    status: supported
+    binding: "reviewer readonly subagent → Leader Write *-code-review.md"
+  verification.before-completion:
+    status: supported
+    binding: "verification-before-completion skill 铁律 + TDD 合规门"
+  verification.fix-loop:
+    status: supported
+    binding: "BLOCK → review-fix WU → 重新验证"

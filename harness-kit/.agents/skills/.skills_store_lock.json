@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "skills": {
+    "github": {
+      "name": "Github",
+      "zip_url": "https://api.skillhub.cn/api/v1/download?slug=github",
+      "source": "community",
+      "version": "1.0.0",
+      "installedAt": "2026-05-24T11:42:42Z"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# Cursor 编排配置覆盖层
+# 继承自 harness-kit/core/orchestration/config.defaults.yaml
+# 仅列出 Cursor 特定覆盖项
+
+orchestration:
+  platform: cursor
+  skill: cursor-orchestration
