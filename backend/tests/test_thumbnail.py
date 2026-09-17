@@ -41,8 +41,19 @@ def test_validate_thumb_accepts_whitelist():
     validate_thumb_url("https://i.ytimg.com/vi/abc/maxresdefault.jpg")
 
 
+def test_validate_thumb_accepts_cdn_subdomains():
+    # B 站任意 iN 子域
+    validate_thumb_url("https://i0.hdslb.com/bfs/archive/abc.jpg")
+    # 抖音封面 CDN 子域（p3 / p26-sign 等）
+    validate_thumb_url("https://p3.douyinpic.com/abc.webp")
+    validate_thumb_url("https://p26-sign.douyinpic.com/tos-cn-i-dy/abc~tplv.webp")
+
+
 def test_validate_thumb_rejects_non_whitelist():
     import pytest
 
     with pytest.raises(ValueError, match="白名单"):
         validate_thumb_url("https://evil.example.com/x.jpg")
+    # 伪装后缀不算（evil-douyinpic.com 不是 douyinpic.com 的子域）
+    with pytest.raises(ValueError, match="白名单"):
+        validate_thumb_url("https://evil-douyinpic.com/x.jpg")

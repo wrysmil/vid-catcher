@@ -3,18 +3,26 @@ from urllib.parse import urlparse
 ALLOWED_SCHEMES = {"http", "https"}
 MAX_URL_LENGTH = 2048
 
-# 缩略图代理白名单：只允许 yt-dlp 实际会返回的 CDN 域名。避免把 /api/thumbnail
-# 当成跳板做 SSRF（访问内网、读本地文件等）。
+# 缩略图代理白名单：只允许真实 CDN 域名，避免把 /api/thumbnail 当成跳板做 SSRF。
 THUMB_ALLOWED_HOSTS = {
-    "i0.hdslb.com",
-    "i1.hdslb.com",
-    "i2.hdslb.com",
-    "bfs/archive",  # 占位，避免误伤（实际匹配的是子域）
     "yt3.ggpht.com",
     "i.ytimg.com",
     "i9.ytimg.com",
     "img.youtube.com",
 }
+
+# 允许的 CDN 后缀（含所有子域）：B 站 i0/i1/i2.hdslb.com、抖音 p3/p26-sign.douyinpic.com 等。
+THUMB_ALLOWED_SUFFIXES = {
+    "hdslb.com",
+    "douyinpic.com",
+    "douyinvod.com",
+}
+
+
+def _thumb_host_allowed(host: str) -> bool:
+    if host in THUMB_ALLOWED_HOSTS:
+        return True
+    return any(host == suffix or host.endswith("." + suffix) for suffix in THUMB_ALLOWED_SUFFIXES)
 
 
 def validate_http_url(raw: str) -> str:
@@ -39,6 +47,6 @@ def validate_thumb_url(raw: str) -> str:
     """白名单内的图片 CDN URL；其余直接拒。"""
     url = validate_http_url(raw)
     host = urlparse(url).hostname or ""
-    if host not in THUMB_ALLOWED_HOSTS:
+    if not _thumb_host_allowed(host):
         raise ValueError(f"缩略图域名不在白名单: {host}")
     return url

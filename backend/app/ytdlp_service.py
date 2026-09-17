@@ -7,6 +7,7 @@ from pathlib import Path
 import requests
 import yt_dlp
 
+from .filenames import safe_filename
 from .formats import PRESETS, assert_duration_ok, quality_choices, slim_formats
 
 DOWNLOAD_DIR = Path(__file__).resolve().parents[1] / "tmp_downloads"
@@ -150,6 +151,9 @@ def parse_video(url: str) -> dict:
 
 def download_video(url: str, format_id: str, dest_dir: Path, progress_hook) -> Path:
     dest_dir.mkdir(parents=True, exist_ok=True)
+    # 中间名只求「能落盘」，最终名下载完再按标题重写（见 _rename_to_title）。
+    # 不能开 restrictfilenames：它会把中文等非 ASCII 字符整个删掉，
+    # 「测试视频」会变成空标题，文件名只剩 ".mp4"。
     outtmpl = str(dest_dir / "%(title).80s.%(ext)s")
     # 默认走 H.264 优先；avc1 没有时 /b 兜底到单文件最佳。
     fmt = (format_id or "").strip() or "bv*[vcodec^=avc1]+ba/b"
@@ -159,7 +163,6 @@ def download_video(url: str, format_id: str, dest_dir: Path, progress_hook) -> P
         "outtmpl": outtmpl,
         "merge_output_format": "mp4",
         "progress_hooks": [progress_hook],
-        "restrictfilenames": True,
     }
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=True)
@@ -168,12 +171,39 @@ def download_video(url: str, format_id: str, dest_dir: Path, progress_hook) -> P
         if info.get("_type") == "playlist":
             entries = [e for e in (info.get("entries") or []) if e]
             info = entries[0] if entries else info
-        prepared = ydl.prepare_filename(info)
-        path = Path(prepared)
-        if not path.exists():
-            mp4 = path.with_suffix(".mp4")
-            if mp4.exists():
-                path = mp4
-        if not path.exists():
-            raise ValueError("文件写出失败，可能缺 ffmpeg")
+        path = _resolve_output(ydl, info)
+    return _rename_to_title(path, info)
+
+
+def _resolve_output(ydl: yt_dlp.YoutubeDL, info: dict) -> Path:
+    """定位 yt-dlp 实际写出的文件。
+
+    merge_output_format 会把 "x.f137.mp4" 合并成 "x.mp4"，prepare_filename()
+    给的还是合并前的名字，所以按三级兜底：原路径 -> 换 .mp4 -> 扫任务目录。
+    """
+    path = Path(ydl.prepare_filename(info))
+    if path.exists():
         return path
+    mp4 = path.with_suffix(".mp4")
+    if mp4.exists():
+        return mp4
+
+    # 任务目录（tmp_downloads/<task_id>/）是本次下载独占的，里面只会有这一个产物。
+    leftovers = [
+        p
+        for p in path.parent.iterdir()
+        if p.is_file() and p.suffix not in {".part", ".ytdl", ".temp"}
+    ]
+    if leftovers:
+        return max(leftovers, key=lambda p: p.stat().st_mtime)
+    raise ValueError("文件写出失败，可能缺 ffmpeg")
+
+
+def _rename_to_title(path: Path, info: dict) -> Path:
+    """把中间名换成清洗后的标题名。目录独占，不需要防撞名。"""
+    ext = path.suffix.lstrip(".") or "mp4"
+    fallback = f"video_{info.get('id') or path.stem}"
+    target = path.with_name(safe_filename(info.get("title"), fallback=fallback, ext=ext))
+    if target != path:
+        os.replace(path, target)
+    return target

@@ -13,7 +13,8 @@ from urllib.parse import parse_qs, urlparse, urlunparse
 
 from .tasks import store
 from .urls import validate_http_url, validate_thumb_url
-from .ytdlp_service import BROWSER_HEADERS, DOWNLOAD_DIR, download_video, parse_video
+from .ytdlp_service import BROWSER_HEADERS, DOWNLOAD_DIR, parse_video, download_video
+from .douyin_service import is_douyin_url, parse_video as douyin_parse, download_video as douyin_download
 
 
 def _normalize_douyin_url(url: str) -> str:
@@ -63,12 +64,23 @@ def health():
 def parse(payload: UrlPayload):
     try:
         url = validate_http_url(payload.url)
+        # 抖音 URL 走自研解析，其他平台走 yt-dlp
+        if is_douyin_url(url):
+            return _parse_douyin(url)
         url = _normalize_douyin_url(url)
         return parse_video(url)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail=_public_error(exc)) from exc
+
+
+def _parse_douyin(url: str):
+    """抖音视频解析：使用自研 douyin_service。"""
+    try:
+        return douyin_parse(url)
+    except Exception as exc:
+        raise
 
 
 @app.post("/api/download")
@@ -160,7 +172,11 @@ def _run_download(task_id: str) -> None:
 
     try:
         dest = DOWNLOAD_DIR / task_id
-        path = download_video(task.url, task.format_id, dest, hook)
+        # 抖音 URL 走自研下载，其他走 yt-dlp
+        if is_douyin_url(task.url):
+            path = douyin_download(task.url, task.format_id, dest, hook)
+        else:
+            path = download_video(task.url, task.format_id, dest, hook)
         store.update(task_id, status="finished", progress=1.0, filename=str(path))
     except Exception as exc:
         store.update(task_id, status="error", error=_public_error(exc))
@@ -170,6 +186,13 @@ def _public_error(exc: Exception) -> str:
     text = str(exc).strip() or exc.__class__.__name__
     if "Unsupported URL" in text:
         return "这个链接 yt-dlp 还不认识，换 YouTube / B 站等平台视频试试"
+    if "not a bot" in text or "Sign in to confirm" in text:
+        return (
+            "YouTube 现在需要浏览器 cookie 才能确认你不是机器人。"
+            "先在浏览器打开并播放一次这个视频，然后完整退出浏览器，"
+            "重启后端时设置 YTDLP_COOKIES_FROM_BROWSER=chrome（或 edge / brave / firefox）。"
+            "无需登录，只是借用浏览器的访问凭证。"
+        )
     if "Fresh cookies" in text:
         return (
             "抖音风控需要浏览器 cookie 才能拿到视频源。"

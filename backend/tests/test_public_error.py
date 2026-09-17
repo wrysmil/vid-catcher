@@ -31,6 +31,14 @@ def test_public_error_bili_412_chinese():
     assert "YTDLP_COOKIES_FROM_BROWSER" in out
 
 
+def test_public_error_youtube_bot_chinese():
+    text = "ERROR: [youtube] YE7VzlLtp-4: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies"
+    out = _public_error(RuntimeError(text))
+    assert "YouTube" in out
+    assert "cookie" in out.lower()
+    assert "YTDLP_COOKIES_FROM_BROWSER" in out
+
+
 def test_public_error_generic_truncates_long():
     text = "x" * 500
     out = _public_error(RuntimeError(text))
