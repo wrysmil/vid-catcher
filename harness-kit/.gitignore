@@ -1,0 +1,10 @@
+.DS_Store
+*.swp
+*.swo
+*~
+.env
+.env.*
+.worktrees/
+.ai-runtime-artifacts/
+.omx/
+.idea/
