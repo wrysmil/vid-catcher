@@ -531,6 +531,34 @@ a {
   font-size: 12px;
 }
 
+.summary-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.summary-btn {
+  border: 1px solid rgba(47, 111, 237, 0.22);
+  background: var(--blue-soft);
+  color: var(--blue);
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.summary-btn:hover:not(:disabled) {
+  background: #e3edff;
+  border-color: rgba(47, 111, 237, 0.35);
+}
+
+.summary-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .download-row {
   border-top: 1px solid #f3f4f6;
   padding-top: 16px;

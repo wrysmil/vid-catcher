@@ -3,6 +3,10 @@ from __future__ import annotations
 import threading
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +19,7 @@ from .tasks import store
 from .urls import validate_http_url, validate_thumb_url
 from .ytdlp_service import BROWSER_HEADERS, DOWNLOAD_DIR, parse_video, download_video
 from .douyin_service import is_douyin_url, parse_video as douyin_parse, download_video as douyin_download
+from .api_summarize import router as summarize_router
 
 
 def _normalize_douyin_url(url: str) -> str:
@@ -33,6 +38,7 @@ def _normalize_douyin_url(url: str) -> str:
     return urlunparse(parsed._replace(path=f"/video/{modal_id}", query=""))
 
 app = FastAPI(title="Free Video Downloader", version="0.1.0")
+app.include_router(summarize_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

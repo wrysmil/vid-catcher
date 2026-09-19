@@ -6,3 +6,5 @@ python-multipart==0.0.20
 pytest==8.4.1
 httpx==0.28.1
 responses==0.26.3
+openai>=1.0.0
+python-dotenv>=1.0.0

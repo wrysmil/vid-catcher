@@ -32,7 +32,19 @@ npm run dev
 - `GET /api/tasks/{id}`
 - `GET /api/tasks/{id}/file`
 
-一期无数据库、无真实支付。页面上的总结 / 翻译 / 批量是占位。
+一期无数据库、无真实支付。VIP / 批量等为占位；**AI 视频总结**需配置 Command API Key。
+
+## AI 总结（可选）
+
+在 `backend/.env` 中配置（勿提交 Git）：
+
+```bash
+AI_API_KEY=                          # Command Code API Key，自行填写
+AI_API_BASE_URL=https://api.commandcode.ai/provider/v1
+AI_MODEL=deepseek/deepseek-v4-flash
+```
+
+未配置 `AI_API_KEY` 时，解析与下载仍可用，AI 总结会提示服务未配置。
 
 ## B 站 412
 

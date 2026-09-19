@@ -152,6 +152,24 @@
             </div>
           </div>
 
+          <div class="summary-row">
+            <button
+              type="button"
+              class="summary-btn"
+              :disabled="item.busy"
+              @click="item.showSummary = !item.showSummary"
+            >
+              {{ item.showSummary ? "收起 AI 总结" : "AI 总结" }}
+            </button>
+          </div>
+
+          <VideoSummary
+            v-if="item.showSummary"
+            :video-url="item.url"
+            :video-title="item.title"
+            @error="(msg) => (error = msg)"
+          />
+
           <div class="download-row">
             <div class="progress-track" :class="{ show: item.task }">
               <div
@@ -245,6 +263,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, ref } from "vue";
+import VideoSummary from "./components/VideoSummary.vue";
 
 const rawInput = ref("");
 const parsing = ref(false);
@@ -260,6 +279,7 @@ const features = [
   { icon: "⚡", tone: "amber", title: "极速解析下载", desc: "智能解析视频链接，自动匹配最优下载方式，速度快人一步" },
   { icon: "📱", tone: "green", title: "手机也能用", desc: "完美适配手机浏览器，随时随地，想下就下，无需安装 App" },
   { icon: "🎬", tone: "purple", title: "多种清晰度", desc: "支持从 360p 到 4K 多种清晰度选择，满足不同场景需求" },
+  { icon: "🤖", tone: "blue", title: "AI 视频总结", desc: "自动生成摘要、字幕、思维导图，支持针对视频内容提问" },
 ];
 
 const freePlan = [
@@ -341,6 +361,7 @@ async function parseAll() {
         selected: choices[0]?.id || "bv*+ba/b",
         busy: false,
         task: null,
+        showSummary: false,
       });
     }
     // 每次解析替换上一批结果（对齐开源项目：单结果视图，不做堆叠）
