@@ -176,7 +176,7 @@ const props = defineProps({
   videoTitle: { type: String, default: "" },
 });
 
-const emit = defineEmits(["error"]);
+const emit = defineEmits(["error", "loading-change"]);
 
 const tabs = [
   { key: "summary", label: "总结摘要", icon: "📝" },
@@ -188,6 +188,10 @@ const tabs = [
 const activeTab = ref("summary");
 const loading = ref(false);
 const loadingMessage = ref("正在提取视频字幕...");
+
+watch(loading, (value) => {
+  emit("loading-change", value);
+}, { immediate: true });
 
 const summaryText = ref("");
 const summaryStreaming = ref(false);

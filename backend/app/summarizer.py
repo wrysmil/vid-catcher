@@ -21,12 +21,15 @@ def build_chat_completion_extra_kwargs() -> dict:
     """根据 AI_REASONING 构造 Command API 请求参数（关闭或调节思考模式）。"""
     mode = os.getenv("AI_REASONING", "off").strip().lower()
     if mode in _REASONING_OFF:
-        return {"extra_body": {"enable_thinking": False}}
+        return {"extra_body": {"thinking": {"type": "disabled"}}}
     if mode in _REASONING_LEVELS:
-        return {"reasoning_effort": mode}
+        return {
+            "reasoning_effort": mode,
+            "extra_body": {"thinking": {"type": "enabled"}},
+        }
     if mode in {"on", "auto", "default"}:
         return {}
-    return {"extra_body": {"enable_thinking": False}}
+    return {"extra_body": {"thinking": {"type": "disabled"}}}
 
 
 def stream_text_from_delta(delta) -> str:

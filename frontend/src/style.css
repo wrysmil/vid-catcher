@@ -146,6 +146,27 @@ a {
   padding: 72px 20px 36px;
 }
 
+.hero.compact {
+  padding: 28px 20px 16px;
+}
+
+.hero.compact .capsule {
+  margin-top: 0;
+}
+
+.hero.compact h1 {
+  margin-top: 12px;
+  font-size: clamp(28px, 4vw, 36px);
+}
+
+.hero.compact .lead {
+  margin-top: 8px;
+}
+
+.hero.compact .tries {
+  margin-top: 12px;
+}
+
 .hero-deco {
   position: absolute;
   inset: 0;
@@ -321,13 +342,49 @@ a {
   margin-top: 14px;
 }
 
-/* ───────────── 结果卡片 ───────────── */
+/* ───────────── 结果卡片 / 工作区 ───────────── */
 
 .results {
   width: min(900px, calc(100% - 40px));
   margin: 32px auto 0;
   display: grid;
   gap: 18px;
+}
+
+.workspace {
+  width: min(1280px, calc(100% - 40px));
+  margin: 8px auto 0;
+  display: grid;
+  gap: 20px;
+}
+
+.workspace-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.workspace-meta {
+  flex: 0 0 40%;
+  max-width: 40%;
+  min-width: 0;
+}
+
+.workspace-summary {
+  flex: 1 1 60%;
+  min-width: 0;
+}
+
+.workspace-summary .summary-panel {
+  margin-top: 0;
+}
+
+.workspace-meta .result-head {
+  grid-template-columns: 1fr;
+}
+
+.workspace-meta .thumb {
+  height: 180px;
 }
 
 .result-card {
@@ -995,6 +1052,16 @@ a {
   }
 
   .cta {
+    width: 100%;
+  }
+
+  .workspace-row {
+    flex-direction: column;
+  }
+
+  .workspace-meta {
+    flex-basis: auto;
+    max-width: none;
     width: 100%;
   }
 }

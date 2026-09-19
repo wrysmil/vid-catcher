@@ -54,13 +54,16 @@ def test_truncate_text_long():
 @patch.dict("os.environ", {"AI_REASONING": "off"}, clear=False)
 def test_build_chat_completion_extra_kwargs_off():
     assert build_chat_completion_extra_kwargs() == {
-        "extra_body": {"enable_thinking": False},
+        "extra_body": {"thinking": {"type": "disabled"}},
     }
 
 
 @patch.dict("os.environ", {"AI_REASONING": "high"}, clear=False)
 def test_build_chat_completion_extra_kwargs_level():
-    assert build_chat_completion_extra_kwargs() == {"reasoning_effort": "high"}
+    assert build_chat_completion_extra_kwargs() == {
+        "reasoning_effort": "high",
+        "extra_body": {"thinking": {"type": "enabled"}},
+    }
 
 
 @patch.dict("os.environ", {"AI_REASONING": "on"}, clear=False)
@@ -106,7 +109,7 @@ def test_summarize_stream_yields_tokens(mock_openai):
     call_kwargs = client.chat.completions.create.call_args.kwargs
     assert call_kwargs["stream"] is True
     assert call_kwargs["model"] == "deepseek/deepseek-v4-flash"
-    assert call_kwargs["extra_body"] == {"enable_thinking": False}
+    assert call_kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
 
 
 @patch.dict("os.environ", {}, clear=True)

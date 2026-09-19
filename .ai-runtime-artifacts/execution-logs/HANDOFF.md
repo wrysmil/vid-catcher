@@ -15,7 +15,7 @@ platform: cursor
 
 - 最后完成 WU: WU-01、WU-02
 - 当前 GROUP: GROUP-1
-- 下一步: 等 reviewer / security-auditor 返回 → 落盘审查 + execution-log
+- 下一步: 代码已在 main@30495e3；集体审查被用户中止（SKIPPED），未 push
 
 ## 已做决策
 

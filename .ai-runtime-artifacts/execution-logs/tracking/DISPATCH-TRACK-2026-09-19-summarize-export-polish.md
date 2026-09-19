@@ -117,3 +117,23 @@ Output: pending commit
 Error: none
 Next: commit on main + WORKTREE-CLOSE
 ```
+
+```text
+[2026-09-19 13:59] WORKTREE-CLOSE | Leader | Status: completed
+Detail: 已提交 main@30495e3；拆除 worktree 并删除 harness/wt-2026-09-19-summarize-export-polish（原与 5d7b3c1 同 SHA，无独立 commit 可 merge）
+Sub-agents: 0
+Output: 30495e3
+Error: none
+Next: 未 push；审查产物仍待落盘
+```
+
+```text
+[2026-09-19 13:55] CLOSEOUT-B | Leader | Status: completed
+Detail: 用户中止 reviewer 与 security-auditor，按故意停止处理，不重派
+Sub-agents: 0
+GROUP: 1 | WU: review,security | ITER: 1 | STEP: review
+Closeout: collective-test=.ai-runtime-artifacts/verifications/2026-09-19-summarize-export-polish-collective-test.md verdict=PASS | code-review=skipped verdict=SKIPPED | status=done
+Output: none
+Error: none
+Next: 无需重开审查，除非用户明确要求
+```

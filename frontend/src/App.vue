@@ -25,15 +25,15 @@
     </header>
 
     <main>
-      <section id="top" class="hero">
+      <section id="top" class="hero" :class="{ compact: hasResults }">
         <div class="hero-deco" aria-hidden="true">
           <span class="orb orb-a"></span>
           <span class="orb orb-b"></span>
         </div>
         <div class="hero-inner">
-          <div class="badge"><span class="dot"></span> 支持 1800+ 平台，永久免费使用</div>
-          <h1>视频捕手，<em>一键保存</em></h1>
-          <p class="lead">
+          <div v-if="showSlogan" class="badge"><span class="dot"></span> 支持 1800+ 平台，永久免费使用</div>
+          <h1 v-if="showSlogan">视频捕手，<em>一键保存</em></h1>
+          <p v-if="showSlogan" class="lead">
             粘贴视频链接，智能解析，支持多种清晰度下载。YouTube、Bilibili、抖音、TikTok...
             <br />
             随时随地，想下就下
@@ -66,7 +66,7 @@
             </button>
           </form>
 
-          <div class="tries">
+          <div v-if="showSlogan" class="tries">
             试一试：
             <button type="button" @click="useDemo('https://www.youtube.com/watch?v=dQw4w9WgXcQ')">YouTube</button>
             <button type="button" @click="useDemo('https://www.bilibili.com/video/BV1GJ411x7h7')">Bilibili</button>
@@ -76,8 +76,9 @@
         </div>
       </section>
 
-      <section v-if="results.length" class="results">
-        <article v-for="item in results" :key="item.key" class="result-card">
+      <section v-if="results.length" class="workspace">
+        <div v-for="item in results" :key="item.key" class="workspace-row">
+        <article class="result-card workspace-meta">
           <div class="result-head">
             <div class="thumb-wrap">
               <img
@@ -156,19 +157,12 @@
             <button
               type="button"
               class="summary-btn"
-              :disabled="item.busy"
-              @click="item.showSummary = !item.showSummary"
+              :disabled="item.busy || item.summarizing"
+              @click="restartSummary(item)"
             >
-              {{ item.showSummary ? "收起 AI 总结" : "AI 总结" }}
+              {{ item.summarizing ? "总结中..." : "重新生成" }}
             </button>
           </div>
-
-          <VideoSummary
-            v-if="item.showSummary"
-            :video-url="item.url"
-            :video-title="item.title"
-            @error="(msg) => (error = msg)"
-          />
 
           <div class="download-row">
             <div class="progress-track" :class="{ show: item.task }">
@@ -192,6 +186,16 @@
             </div>
           </div>
         </article>
+        <div class="workspace-summary">
+          <VideoSummary
+            :key="item.summaryKey"
+            :video-url="item.url"
+            :video-title="item.title"
+            @error="(msg) => (error = msg)"
+            @loading-change="(on) => onSummaryLoading(item, on)"
+          />
+        </div>
+        </div>
       </section>
 
       <section id="features" class="section">
@@ -262,7 +266,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import VideoSummary from "./components/VideoSummary.vue";
 
 const rawInput = ref("");
@@ -271,8 +275,32 @@ const error = ref("");
 const results = ref([]);
 const toast = ref("");
 const timers = new Set();
+const presentMode = ref(false);
 
 const hasInput = computed(() => rawInput.value.trim().length > 0);
+const hasResults = computed(() => results.value.length > 0);
+const showSlogan = computed(() => !hasResults.value || presentMode.value);
+
+let enterCount = 0;
+let enterTimer = null;
+
+function onGlobalKeydown(event) {
+  if (event.key !== "Enter") return;
+  const target = event.target;
+  if (target instanceof Element && target.matches("input, textarea, [contenteditable]")) {
+    return;
+  }
+  enterCount += 1;
+  clearTimeout(enterTimer);
+  if (enterCount >= 3) {
+    presentMode.value = !presentMode.value;
+    enterCount = 0;
+    return;
+  }
+  enterTimer = setTimeout(() => {
+    enterCount = 0;
+  }, 800);
+}
 
 const features = [
   { icon: "🌐", tone: "blue", title: "支持 1800+ 平台", desc: "YouTube、Bilibili、抖音、TikTok、Twitter 等全球主流平台" },
@@ -361,10 +389,11 @@ async function parseAll() {
         selected: choices[0]?.id || "bv*+ba/b",
         busy: false,
         task: null,
-        showSummary: false,
+        summaryKey: Date.now() + next.length,
+        summarizing: false,
       });
     }
-    // 每次解析替换上一批结果（对齐开源项目：单结果视图，不做堆叠）
+    presentMode.value = false;
     results.value = next;
   } catch (err) {
     error.value = err.message;
@@ -460,6 +489,15 @@ function displayPlatform(extractor) {
   return extractor || "未知平台";
 }
 
+function restartSummary(item) {
+  if (item.summarizing) return;
+  item.summaryKey += 1;
+}
+
+function onSummaryLoading(item, isLoading) {
+  item.summarizing = Boolean(isLoading);
+}
+
 function showToast() {
   toast.value = "学习版即将开放，先把下载用爽";
   setTimeout(() => {
@@ -467,7 +505,13 @@ function showToast() {
   }, 2200);
 }
 
+onMounted(() => {
+  document.addEventListener("keydown", onGlobalKeydown);
+});
+
 onBeforeUnmount(() => {
+  document.removeEventListener("keydown", onGlobalKeydown);
+  clearTimeout(enterTimer);
   timers.forEach(clearInterval);
 });
 </script>
