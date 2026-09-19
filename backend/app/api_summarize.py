@@ -96,7 +96,7 @@ async def summarize_video(req: SummarizeRequest):
 
             yield ": keepalive summary\n\n"
             for token in summarizer.summarize_stream(full_text, req.language):
-                yield _sse("summary", token)
+                yield _sse("summary", json.dumps(token, ensure_ascii=False))
                 await asyncio.sleep(0)
 
             yield _sse("summary_done", "[DONE]")
@@ -156,7 +156,7 @@ async def chat_with_video(req: ChatRequest):
 
             summarizer = _get_summarizer()
             for token in summarizer.chat_stream(subtitle_text, req.question):
-                yield _sse("answer", token)
+                yield _sse("answer", json.dumps(token, ensure_ascii=False))
                 await asyncio.sleep(0)
 
             yield _sse("done", "[DONE]")

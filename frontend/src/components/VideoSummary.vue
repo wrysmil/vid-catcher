@@ -41,9 +41,39 @@
                   {{ subtitleTypeLabel(subtitleData.subtitle_type) }} · {{ subtitleData.language }}
                 </span>
               </div>
-              <button type="button" class="subtitle-toggle" @click="subtitleExpanded = !subtitleExpanded">
-                {{ subtitleExpanded ? "收起" : "展开全部" }}
-              </button>
+              <div class="subtitle-head-actions">
+                <div
+                  v-if="subtitleData.segments.length"
+                  ref="subtitleDropdownRef"
+                  class="export-menu"
+                >
+                  <button
+                    type="button"
+                    class="export-btn"
+                    :aria-expanded="showSubtitleDropdown"
+                    aria-haspopup="true"
+                    @click.stop="showSubtitleDropdown = !showSubtitleDropdown"
+                  >
+                    下载字幕
+                  </button>
+                  <div v-if="showSubtitleDropdown" class="export-pop" role="menu">
+                    <button
+                      v-for="fmt in subtitleFormats"
+                      :key="fmt.key"
+                      type="button"
+                      class="export-item"
+                      role="menuitem"
+                      @click="downloadSubtitle(fmt.key)"
+                    >
+                      {{ fmt.label }}
+                      <span class="export-ext">.{{ fmt.ext }}</span>
+                    </button>
+                  </div>
+                </div>
+                <button type="button" class="subtitle-toggle" @click="subtitleExpanded = !subtitleExpanded">
+                  {{ subtitleExpanded ? "收起" : "展开全部" }}
+                </button>
+              </div>
             </div>
             <div class="subtitle-list" :class="{ expanded: subtitleExpanded }">
               <div v-for="(seg, idx) in subtitleData.segments" :key="idx" class="subtitle-row">
@@ -62,7 +92,15 @@
         </div>
 
         <div v-show="activeTab === 'mindmap'">
-          <div v-if="mindmapMarkdown" class="mindmap-wrap">
+          <div v-if="mindmapMarkdown" ref="mindmapContainer" class="mindmap-wrap" :class="{ fullscreen: isFullscreen }">
+            <div class="mindmap-toolbar">
+              <button type="button" class="export-btn" @click="onDownloadPng">PNG</button>
+              <button type="button" class="export-btn" @click="onDownloadSvg">SVG</button>
+              <button type="button" class="export-btn" @click="toggleFullscreen">
+                {{ isFullscreen ? "退出全屏" : "全屏" }}
+              </button>
+            </div>
+            <p v-if="exportHint" class="summary-muted small">{{ exportHint }}</p>
             <svg ref="mindmapSvg" class="mindmap-svg"></svg>
           </div>
           <div v-else-if="mindmapLoading" class="summary-center">
@@ -93,7 +131,7 @@
                     <span v-else class="summary-muted">AI 正在回复</span>
                     <span class="typing-cursor"></span>
                   </div>
-                  <div v-else-if="msg.role === 'assistant'" v-html="renderMarkdown(msg.content)"></div>
+                  <div v-else-if="msg.role === 'assistant'" class="chat-prose" v-html="renderMarkdown(msg.content)"></div>
                   <span v-else>{{ msg.content }}</span>
                 </div>
               </div>
@@ -119,11 +157,19 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick, onMounted } from "vue";
+import { ref, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { marked } from "marked";
 import { Transformer } from "markmap-lib";
 import { Markmap } from "markmap-view";
 import { summarizeVideo, chatWithVideo } from "../api/summarize.js";
+import {
+  buildSubtitleBlob,
+  safeDownloadName,
+  triggerDownload,
+} from "../utils/subtitleFormat.js";
+import { downloadMindmapPng, downloadMindmapSvg } from "../utils/mindmapExport.js";
+
+marked.use({ gfm: true, breaks: true });
 
 const props = defineProps({
   videoUrl: { type: String, required: true },
@@ -150,6 +196,17 @@ const subtitleData = ref({ segments: [], has_subtitle: false });
 const subtitleExpanded = ref(false);
 const mindmapMarkdown = ref("");
 const mindmapSvg = ref(null);
+const mindmapContainer = ref(null);
+let markmapInstance = null;
+const isFullscreen = ref(false);
+const showSubtitleDropdown = ref(false);
+const subtitleDropdownRef = ref(null);
+const subtitleFormats = [
+  { key: "srt", label: "SRT 字幕", ext: "srt" },
+  { key: "vtt", label: "VTT 字幕", ext: "vtt" },
+  { key: "txt", label: "纯文本", ext: "txt" },
+];
+const exportHint = ref("");
 const summaryContainer = ref(null);
 
 const chatMessages = ref([]);
@@ -181,10 +238,65 @@ function renderMindmap(md) {
     mindmapSvg.value.innerHTML = "";
     const transformer = new Transformer();
     const { root } = transformer.transform(md);
-    Markmap.create(mindmapSvg.value, { autoFit: true }, root);
+    markmapInstance = Markmap.create(mindmapSvg.value, { autoFit: true }, root);
   } catch (e) {
     console.warn("思维导图渲染失败:", e);
   }
+}
+
+async function toggleFullscreen() {
+  if (!mindmapContainer.value) return;
+  try {
+    if (!document.fullscreenElement) {
+      const el = mindmapContainer.value;
+      if (el.requestFullscreen) await el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } else if (document.exitFullscreen) {
+      await document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  } catch (e) {
+    console.warn("全屏不可用:", e);
+  }
+}
+
+function onFullscreenChange() {
+  isFullscreen.value = Boolean(document.fullscreenElement);
+  nextTick(() => {
+    if (markmapInstance) markmapInstance.fit();
+  });
+}
+
+function handleClickOutside(e) {
+  if (subtitleDropdownRef.value && !subtitleDropdownRef.value.contains(e.target)) {
+    showSubtitleDropdown.value = false;
+  }
+}
+
+function downloadSubtitle(format) {
+  showSubtitleDropdown.value = false;
+  const segments = subtitleData.value.segments;
+  if (!segments?.length) return;
+  const { content, ext } = buildSubtitleBlob(segments, format);
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  triggerDownload(blob, `${safeDownloadName(props.videoTitle)} - 字幕.${ext}`);
+}
+
+async function onDownloadPng() {
+  exportHint.value = "";
+  const ok = await downloadMindmapPng(
+    mindmapSvg.value,
+    `${safeDownloadName(props.videoTitle)} - 思维导图.png`,
+  );
+  if (!ok) exportHint.value = "PNG 导出失败，请改用 SVG";
+}
+
+function onDownloadSvg() {
+  downloadMindmapSvg(
+    mindmapSvg.value,
+    `${safeDownloadName(props.videoTitle)} - 思维导图.svg`,
+  );
 }
 
 function subtitleTypeLabel(type) {
@@ -330,6 +442,15 @@ function scrollChatToBottom() {
 
 onMounted(() => {
   startSummarize();
+  document.addEventListener("fullscreenchange", onFullscreenChange);
+  document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+  document.addEventListener("click", handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("fullscreenchange", onFullscreenChange);
+  document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
+  document.removeEventListener("click", handleClickOutside);
 });
 </script>
 
@@ -470,12 +591,75 @@ onMounted(() => {
   font-size: 12px;
 }
 
+.subtitle-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .subtitle-toggle {
   border: none;
   background: transparent;
   color: var(--blue);
   font-size: 12px;
   cursor: pointer;
+}
+
+.export-menu {
+  position: relative;
+}
+
+.export-btn {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.export-btn:focus-visible,
+.export-item:focus-visible,
+.subtitle-toggle:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.export-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid var(--line-light);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+  padding: 6px;
+  z-index: 5;
+}
+
+.export-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.export-item:hover {
+  background: var(--blue-soft);
+}
+
+.export-ext {
+  color: var(--soft);
 }
 
 .subtitle-list {
@@ -519,6 +703,26 @@ onMounted(() => {
   border-radius: 14px;
   background: #f8fafc;
   overflow: hidden;
+}
+
+.mindmap-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-light);
+}
+
+.mindmap-wrap.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border-radius: 0;
+  border: none;
+  background: #fff;
+}
+
+.mindmap-wrap.fullscreen .mindmap-svg {
+  min-height: calc(100vh - 56px);
 }
 
 .mindmap-svg {
@@ -623,30 +827,181 @@ onMounted(() => {
   animation: pulse 0.8s ease-in-out infinite;
 }
 
+.summary-prose :deep(h1) {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--blue-soft);
+  color: var(--ink);
+}
+
 .summary-prose :deep(h2) {
   font-size: 1.125rem;
   font-weight: 700;
   margin: 1.25rem 0 0.75rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--line-light);
+  color: var(--ink);
 }
 
 .summary-prose :deep(h3) {
   font-size: 1rem;
   font-weight: 600;
   margin: 1rem 0 0.5rem;
+  color: var(--ink);
 }
 
 .summary-prose :deep(p),
 .summary-prose :deep(li) {
   line-height: 1.75;
   margin-bottom: 0.5rem;
+  color: var(--ink);
 }
 
 .summary-prose :deep(ul),
 .summary-prose :deep(ol) {
   padding-left: 1.4rem;
   margin-bottom: 0.75rem;
+}
+
+.summary-prose :deep(li::marker) {
+  color: var(--blue);
+}
+
+.summary-prose :deep(blockquote) {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--blue);
+  background: var(--page);
+  color: var(--muted);
+}
+
+.summary-prose :deep(code) {
+  font-family: ui-monospace, monospace;
+  font-size: 0.875em;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  background: var(--page);
+  border: 1px solid var(--line-light);
+  color: var(--ink);
+}
+
+.summary-prose :deep(pre) {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
+.summary-prose :deep(pre code) {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+
+.summary-prose :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 13px;
+}
+
+.summary-prose :deep(th),
+.summary-prose :deep(td) {
+  border: 1px solid var(--line-light);
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.summary-prose :deep(th) {
+  background: var(--page);
+  font-weight: 600;
+}
+
+.summary-prose :deep(a) {
+  color: var(--blue);
+}
+
+.chat-prose :deep(h1),
+.chat-prose :deep(h2),
+.chat-prose :deep(h3) {
+  font-size: 0.95rem;
+  font-weight: 650;
+  margin: 0.5rem 0 0.35rem;
+}
+
+.chat-prose :deep(p),
+.chat-prose :deep(li) {
+  line-height: 1.6;
+  margin-bottom: 0.35rem;
+}
+
+.chat-prose :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.chat-prose :deep(ul),
+.chat-prose :deep(ol) {
+  padding-left: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.chat-prose :deep(li::marker) {
+  color: var(--blue);
+}
+
+.chat-prose :deep(blockquote) {
+  margin: 0.4rem 0;
+  padding: 0.35rem 0.6rem;
+  border-left: 3px solid var(--blue);
+  background: var(--page);
+  color: var(--muted);
+}
+
+.chat-prose :deep(code) {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  background: var(--page);
+  border: 1px solid var(--line-light);
+}
+
+.chat-prose :deep(pre) {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0.4rem 0;
+}
+
+.chat-prose :deep(pre code) {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+
+.chat-prose :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.4rem 0;
+  font-size: 12px;
+}
+
+.chat-prose :deep(th),
+.chat-prose :deep(td) {
+  border: 1px solid var(--line-light);
+  padding: 6px 8px;
+}
+
+.chat-prose :deep(a) {
+  color: var(--blue);
 }
 
 @keyframes spin {

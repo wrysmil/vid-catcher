@@ -3,7 +3,8 @@ artifact: implementation-plan
 route: superpowers:writing-plans
 topic: AI 总结面板导出与排版
 status: draft
-approved: false
+approved: true
+approved_by: 用户原话「开始实现吧」+「可以并行执行」
 created_at: 2026-09-19
 source:
   - .ai-runtime-artifacts/specs/2026-09-19-summarize-export-polish-spec.md
@@ -14,7 +15,7 @@ skills:
   - writing-plans
 skills_evidence:
   - writing-plans@~/.cursor/skills/writing-plans/SKILL.md loaded
-dispatch: n/a
+dispatch: .ai-runtime-artifacts/plans/2026-09-19-summarize-export-polish-dispatch.md
 ---
 
 # 总结面板排版与导出 Implementation Plan
