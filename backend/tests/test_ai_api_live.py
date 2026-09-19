@@ -202,20 +202,20 @@ class TestCommandApiLive:
         else:
             pytest.fail(f"未收到 summary 事件，完整 SSE:\n{body[:1500]}")
 
-    def test_07_douyin_jingxuan_usually_no_subtitle(self):
-        """复现：抖音 jingxuan 链接 yt-dlp 无法提取字幕，总结会失败。"""
+    def test_07_douyin_jingxuan_uses_public_api_desc(self):
+        """抖音 jingxuan 走公开 API：有文案则进入总结，无文案才报错。"""
         _skip_unless_smoke()
         douyin_url = os.environ.get(
             "AI_SMOKE_DOUYIN_URL",
             "https://www.douyin.com/jingxuan?modal_id=7686500203570023723",
         )
         print(f"\n[step 7] douyin url={douyin_url}")
-        try:
-            data = SubtitleExtractor().extract(douyin_url)
-            print(f"[step 7] extract has_subtitle={data['has_subtitle']}")
-            assert not data["has_subtitle"], "预期无字幕"
-        except Exception as exc:
-            print(f"[step 7] extract exception (expected for jingxuan): {exc}")
+        data = SubtitleExtractor().extract(douyin_url)
+        print(
+            f"[step 7] extract has_subtitle={data['has_subtitle']} "
+            f"type={data.get('subtitle_type')} text={data.get('full_text', '')[:80]!r}"
+        )
+        assert "Unsupported URL" not in (data.get("full_text") or "")
 
         client = TestClient(app)
         with client.stream(
@@ -227,11 +227,9 @@ class TestCommandApiLive:
         events = _parse_sse(body)
         event_names = [name for name, _ in events]
         print(f"[step 7] SSE events={event_names}")
-        assert "error" in event_names, f"抖音总结应失败，SSE:\n{body[:800]}"
-        err_payload = next(p for n, p in events if n == "error")
-        try:
-            err_msg = json.loads(err_payload).get("message", err_payload)
-        except json.JSONDecodeError:
-            err_msg = err_payload
-        print(f"[step 7] error message={err_msg!r}")
-        assert err_msg, "应有错误说明"
+        assert "subtitle" in event_names, f"应先推字幕/文案事件，SSE:\n{body[:800]}"
+        assert "Unsupported URL" not in body
+        if data["has_subtitle"]:
+            assert "summary" in event_names or "done" in event_names
+        else:
+            assert "error" in event_names

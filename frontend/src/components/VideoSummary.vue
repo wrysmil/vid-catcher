@@ -21,9 +21,12 @@
           <p class="summary-muted">{{ loadingMessage }}</p>
         </div>
 
-        <div v-show="activeTab === 'summary'">
-          <div v-if="summaryText" class="summary-prose" v-html="renderedSummary"></div>
-          <div v-if="loading && summaryText" class="summary-stream-hint">
+        <div v-show="activeTab === 'summary'" ref="summaryContainer" class="summary-output-wrap">
+          <div v-if="summaryStreaming" class="summary-stream-text">
+            {{ summaryText }}<span class="typing-cursor"></span>
+          </div>
+          <div v-else-if="summaryText" class="summary-prose" v-html="renderedSummary"></div>
+          <div v-if="summaryStreaming" class="summary-stream-hint">
             <span class="pulse-dot"></span>
             AI 正在生成中...
           </div>
@@ -35,7 +38,7 @@
               <div class="summary-muted">
                 共 {{ subtitleData.segments.length }} 条字幕
                 <span v-if="subtitleData.language" class="subtitle-badge">
-                  {{ subtitleData.subtitle_type === "manual" ? "人工字幕" : "自动字幕" }} · {{ subtitleData.language }}
+                  {{ subtitleTypeLabel(subtitleData.subtitle_type) }} · {{ subtitleData.language }}
                 </span>
               </div>
               <button type="button" class="subtitle-toggle" @click="subtitleExpanded = !subtitleExpanded">
@@ -62,7 +65,7 @@
           <div v-if="mindmapMarkdown" class="mindmap-wrap">
             <svg ref="mindmapSvg" class="mindmap-svg"></svg>
           </div>
-          <div v-else-if="loading" class="summary-center">
+          <div v-else-if="mindmapLoading" class="summary-center">
             <div class="summary-spinner"></div>
             <p class="summary-muted">正在生成思维导图...</p>
           </div>
@@ -85,9 +88,13 @@
                 :class="msg.role === 'user' ? 'user' : 'assistant'"
               >
                 <div class="qa-bubble" :class="msg.role">
-                  <div v-if="msg.role === 'assistant'" v-html="renderMarkdown(msg.content)"></div>
+                  <div v-if="msg.role === 'assistant' && msg.loading" class="qa-stream-text">
+                    <template v-if="msg.content">{{ msg.content }}</template>
+                    <span v-else class="summary-muted">AI 正在回复</span>
+                    <span class="typing-cursor"></span>
+                  </div>
+                  <div v-else-if="msg.role === 'assistant'" v-html="renderMarkdown(msg.content)"></div>
                   <span v-else>{{ msg.content }}</span>
-                  <span v-if="msg.role === 'assistant' && msg.loading" class="typing-cursor"></span>
                 </div>
               </div>
             </div>
@@ -137,10 +144,13 @@ const loading = ref(false);
 const loadingMessage = ref("正在提取视频字幕...");
 
 const summaryText = ref("");
+const summaryStreaming = ref(false);
+const mindmapLoading = ref(false);
 const subtitleData = ref({ segments: [], has_subtitle: false });
 const subtitleExpanded = ref(false);
 const mindmapMarkdown = ref("");
 const mindmapSvg = ref(null);
+const summaryContainer = ref(null);
 
 const chatMessages = ref([]);
 const chatInput = ref("");
@@ -149,9 +159,9 @@ const chatContainer = ref(null);
 
 const renderedSummary = ref("");
 
-watch(summaryText, (val) => {
-  renderedSummary.value = renderMarkdown(val);
-});
+function finalizeSummaryMarkdown() {
+  renderedSummary.value = renderMarkdown(summaryText.value);
+}
 
 watch(mindmapMarkdown, async (val) => {
   if (val) {
@@ -177,6 +187,12 @@ function renderMindmap(md) {
   }
 }
 
+function subtitleTypeLabel(type) {
+  if (type === "manual") return "人工字幕";
+  if (type === "description") return "视频文案";
+  return "自动字幕";
+}
+
 function formatTime(seconds) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -185,9 +201,20 @@ function formatTime(seconds) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function scrollSummaryToBottom() {
+  nextTick(() => {
+    if (summaryContainer.value) {
+      summaryContainer.value.scrollTop = summaryContainer.value.scrollHeight;
+    }
+  });
+}
+
 async function startSummarize() {
   loading.value = true;
   summaryText.value = "";
+  summaryStreaming.value = false;
+  mindmapLoading.value = false;
+  renderedSummary.value = "";
   mindmapMarkdown.value = "";
   loadingMessage.value = "正在提取视频字幕...";
 
@@ -204,9 +231,17 @@ async function startSummarize() {
         }
       },
       summary: (data) => {
+        summaryStreaming.value = true;
         summaryText.value += data;
+        scrollSummaryToBottom();
+      },
+      summary_done: () => {
+        summaryStreaming.value = false;
+        mindmapLoading.value = true;
+        finalizeSummaryMarkdown();
       },
       mindmap: (data) => {
+        mindmapLoading.value = false;
         try {
           const parsed = JSON.parse(data);
           mindmapMarkdown.value = parsed.markdown || "";
@@ -215,10 +250,18 @@ async function startSummarize() {
         }
       },
       done: () => {
+        summaryStreaming.value = false;
+        mindmapLoading.value = false;
+        finalizeSummaryMarkdown();
         loading.value = false;
       },
       error: (data) => {
+        summaryStreaming.value = false;
+        mindmapLoading.value = false;
         loading.value = false;
+        if (summaryText.value) {
+          finalizeSummaryMarkdown();
+        }
         try {
           const parsed = JSON.parse(data);
           emit("error", parsed.message || "总结失败");
@@ -228,6 +271,8 @@ async function startSummarize() {
       },
     });
   } catch (err) {
+    summaryStreaming.value = false;
+    mindmapLoading.value = false;
     loading.value = false;
     emit("error", `总结请求失败: ${err.message}`);
   }
@@ -240,8 +285,8 @@ async function sendQuestion() {
   chatInput.value = "";
   chatMessages.value.push({ role: "user", content: question });
 
-  const aiMessage = { role: "assistant", content: "", loading: true };
-  chatMessages.value.push(aiMessage);
+  const aiIdx = chatMessages.value.length;
+  chatMessages.value.push({ role: "assistant", content: "", loading: true });
   chatLoading.value = true;
 
   await nextTick();
@@ -250,28 +295,28 @@ async function sendQuestion() {
   try {
     await chatWithVideo(props.videoUrl, question, subtitleData.value.full_text || "", {
       answer: (data) => {
-        aiMessage.content += data;
+        chatMessages.value[aiIdx].content += data;
         scrollChatToBottom();
       },
       done: () => {
-        aiMessage.loading = false;
+        chatMessages.value[aiIdx].loading = false;
         chatLoading.value = false;
       },
       error: (data) => {
-        aiMessage.loading = false;
+        chatMessages.value[aiIdx].loading = false;
         chatLoading.value = false;
         try {
           const parsed = JSON.parse(data);
-          aiMessage.content = `❌ ${parsed.message || "回答失败"}`;
+          chatMessages.value[aiIdx].content = `❌ ${parsed.message || "回答失败"}`;
         } catch {
-          aiMessage.content = "❌ 回答失败";
+          chatMessages.value[aiIdx].content = "❌ 回答失败";
         }
       },
     });
   } catch (err) {
-    aiMessage.loading = false;
+    chatMessages.value[aiIdx].loading = false;
     chatLoading.value = false;
-    aiMessage.content = `❌ 请求失败: ${err.message}`;
+    chatMessages.value[aiIdx].content = `❌ 请求失败: ${err.message}`;
   }
 }
 
@@ -375,6 +420,20 @@ onMounted(() => {
 .summary-spinner.lg {
   width: 44px;
   height: 44px;
+}
+
+.summary-output-wrap {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.summary-stream-text,
+.qa-stream-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--ink);
 }
 
 .summary-stream-hint {

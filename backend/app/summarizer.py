@@ -11,6 +11,28 @@ import httpx
 import yt_dlp
 from openai import OpenAI
 
+from .douyin_service import is_douyin_url, parse_video
+
+_REASONING_LEVELS = frozenset({"low", "medium", "high", "xhigh", "max"})
+_REASONING_OFF = frozenset({"off", "false", "0", "none", "disabled"})
+
+
+def build_chat_completion_extra_kwargs() -> dict:
+    """根据 AI_REASONING 构造 Command API 请求参数（关闭或调节思考模式）。"""
+    mode = os.getenv("AI_REASONING", "off").strip().lower()
+    if mode in _REASONING_OFF:
+        return {"extra_body": {"enable_thinking": False}}
+    if mode in _REASONING_LEVELS:
+        return {"reasoning_effort": mode}
+    if mode in {"on", "auto", "default"}:
+        return {}
+    return {"extra_body": {"enable_thinking": False}}
+
+
+def stream_text_from_delta(delta) -> str:
+    """从流式 delta 提取应展示给用户的文本（仅 content，不含 reasoning）。"""
+    return delta.content or ""
+
 
 def time_to_seconds(time_str: str) -> float:
     """将 HH:MM:SS.mmm 转为秒数"""
@@ -72,6 +94,20 @@ def _is_bilibili_url(url: str) -> bool:
     return "bilibili.com" in url or "b23.tv" in url
 
 
+def _douyin_summary_text(info: dict) -> str:
+    """公开 API 没有字幕，优先用完整 desc，再回退截断后的 description/title。"""
+    full = (info.get("desc") or "").strip()
+    if full:
+        return full
+    desc = (info.get("description") or "").strip()
+    if desc:
+        return desc
+    title = (info.get("title") or "").strip()
+    if title and not title.startswith("抖音视频_"):
+        return title
+    return ""
+
+
 class SubtitleExtractor:
     """从视频 URL 提取平台字幕（人工字幕 > 自动字幕）"""
 
@@ -93,6 +129,9 @@ class SubtitleExtractor:
             result = self._extract_bilibili(url)
             if result["has_subtitle"]:
                 return result
+
+        if is_douyin_url(url):
+            return self._extract_douyin(url)
 
         info = self._get_video_info(url)
 
@@ -203,6 +242,28 @@ class SubtitleExtractor:
         except Exception:
             return empty
 
+    def _extract_douyin(self, url: str) -> dict:
+        """抖音走公开 API（与 /api/parse 同一条链路），用视频文案作为总结文本。
+
+        jingxuan?modal_id= 等非 /video/{id} 链接由 douyin_service.extract_video_id
+        处理，不再把原始 URL 丢给 yt-dlp。
+        """
+        empty = {
+            "has_subtitle": False, "language": "", "subtitle_type": "none",
+            "segments": [], "full_text": "",
+        }
+        info = parse_video(url, require_play_url=False)
+        text = _douyin_summary_text(info)
+        if not text:
+            return empty
+        return {
+            "has_subtitle": True,
+            "language": "zh",
+            "subtitle_type": "description",
+            "segments": [{"start": 0.0, "end": 0.0, "text": text}],
+            "full_text": text,
+        }
+
     @staticmethod
     def _parse_bvid(url: str) -> Optional[str]:
         m = re.search(r"(BV[a-zA-Z0-9]+)", url)
@@ -310,8 +371,13 @@ class VideoSummarizer:
             "AI_API_BASE_URL",
             "https://api.commandcode.ai/provider/v1",
         )
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=httpx.Timeout(connect=30.0, read=300.0, write=300.0, pool=30.0),
+        )
         self.model = os.getenv("AI_MODEL", "deepseek/deepseek-v4-flash")
+        self._completion_extra = build_chat_completion_extra_kwargs()
 
     def summarize_stream(self, subtitle_text: str, language: str = "zh"):
         """流式生成视频总结，yield 每个 token"""
@@ -325,11 +391,12 @@ class VideoSummarizer:
             stream=True,
             temperature=0.7,
             max_tokens=4096,
+            **self._completion_extra,
         )
         for chunk in response:
-            delta = chunk.choices[0].delta
-            if delta.content:
-                yield delta.content
+            text = stream_text_from_delta(chunk.choices[0].delta)
+            if text:
+                yield text
 
     def generate_mindmap(self, subtitle_text: str, language: str = "zh") -> str:
         """生成思维导图 Markdown（非流式，一次性返回）"""
@@ -343,6 +410,7 @@ class VideoSummarizer:
             stream=False,
             temperature=0.5,
             max_tokens=4096,
+            **self._completion_extra,
         )
         return response.choices[0].message.content or ""
 
@@ -358,11 +426,12 @@ class VideoSummarizer:
             stream=True,
             temperature=0.7,
             max_tokens=2048,
+            **self._completion_extra,
         )
         for chunk in response:
-            delta = chunk.choices[0].delta
-            if delta.content:
-                yield delta.content
+            text = stream_text_from_delta(chunk.choices[0].delta)
+            if text:
+                yield text
 
     @staticmethod
     def _build_summary_prompt(subtitle_text: str, language: str) -> str:

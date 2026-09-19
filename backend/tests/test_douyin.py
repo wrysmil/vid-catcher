@@ -156,12 +156,39 @@ def test_parse_video_via_api(monkeypatch):
     info = parser.parse(f"https://www.douyin.com/video/{video_id}")
 
     assert info["title"] == "测试视频"
+    assert info["desc"] == "测试视频"
     assert info["duration"] == 30
     assert info["extractor"] == "Douyin (公开 API)"
     assert info["choices"][0]["id"] == "douyin-nowm"
     assert info["webpage_url"] == f"https://www.douyin.com/video/{video_id}"
     assert info["thumbnail"] is not None
     assert info["thumbnail"].startswith("/api/thumbnail?url=")
+
+
+def test_parse_jingxuan_skips_redirect_and_allows_missing_play_url(monkeypatch):
+    """jingxuan 已有 modal_id，不打开精选页；总结可不要求 play_url。"""
+    video_id = "7686500203570023723"
+
+    def boom(self, url):
+        raise AssertionError(f"不应跟随重定向: {url}")
+
+    monkeypatch.setattr(DouyinParser, "_resolve_redirect", boom)
+    monkeypatch.setattr(
+        "app.douyin_service._fetch_via_api",
+        lambda vid: {
+            "aweme_id": vid,
+            "desc": "精选页视频文案",
+            "author": {"nickname": "测试用户"},
+            "statistics": {},
+            "video": {"duration": 1000, "cover": {"url_list": []}, "play_addr": {"url_list": []}},
+        },
+    )
+
+    parser = DouyinParser()
+    jingxuan = f"https://www.douyin.com/jingxuan?modal_id={video_id}"
+    info = parser.parse(jingxuan, require_play_url=False)
+    assert info["desc"] == "精选页视频文案"
+    assert info["play_url"] is None
 
 
 def test_parse_video_long_url(monkeypatch):

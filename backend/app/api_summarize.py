@@ -29,7 +29,14 @@ class ChatRequest(BaseModel):
 def _sse(event: str, data: str) -> str:
     lines = data.split("\n")
     payload = "".join(f"data: {line}\n" for line in lines)
-    return f"event: {event}\n{payload}\n"
+    return f"event: {event}\n{payload}\n\n"
+
+
+_SSE_HEADERS = {
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
 
 
 def _get_summarizer() -> VideoSummarizer:
@@ -53,7 +60,7 @@ def _get_extractor() -> SubtitleExtractor:
 async def summarize_video(req: SummarizeRequest):
     """
     AI 视频总结（SSE 流式）
-    事件类型: subtitle / summary / mindmap / done / error
+    事件类型: subtitle / summary / summary_done / mindmap / done / error
     """
     try:
         validate_http_url(req.url)
@@ -62,6 +69,7 @@ async def summarize_video(req: SummarizeRequest):
 
     async def event_generator():
         try:
+            yield ": keepalive subtitle\n\n"
             loop = asyncio.get_running_loop()
             extractor = _get_extractor()
             subtitle_data = await loop.run_in_executor(
@@ -86,9 +94,14 @@ async def summarize_video(req: SummarizeRequest):
             full_text = subtitle_data["full_text"]
             summarizer = _get_summarizer()
 
+            yield ": keepalive summary\n\n"
             for token in summarizer.summarize_stream(full_text, req.language):
                 yield _sse("summary", token)
+                await asyncio.sleep(0)
 
+            yield _sse("summary_done", "[DONE]")
+
+            yield ": keepalive mindmap\n\n"
             mindmap_md = await loop.run_in_executor(
                 None, summarizer.generate_mindmap, full_text, req.language
             )
@@ -105,7 +118,11 @@ async def summarize_video(req: SummarizeRequest):
                 json.dumps({"message": f"总结失败: {str(e)}"}, ensure_ascii=False),
             )
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers=_SSE_HEADERS,
+    )
 
 
 @router.post("/chat")
@@ -140,6 +157,7 @@ async def chat_with_video(req: ChatRequest):
             summarizer = _get_summarizer()
             for token in summarizer.chat_stream(subtitle_text, req.question):
                 yield _sse("answer", token)
+                await asyncio.sleep(0)
 
             yield _sse("done", "[DONE]")
 
@@ -149,4 +167,8 @@ async def chat_with_video(req: ChatRequest):
                 json.dumps({"message": f"回答失败: {str(e)}"}, ensure_ascii=False),
             )
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers=_SSE_HEADERS,
+    )

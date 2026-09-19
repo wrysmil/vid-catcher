@@ -494,7 +494,8 @@ def _proxy_thumb(url: str | None) -> str | None:
 
 def _build_result(item_info: dict, video_id: str, original_url: str) -> dict[str, Any]:
     """把原始 item 转成与 yt-dlp 解析结果兼容的统一格式。"""
-    title = (item_info.get("desc") or "").strip() or f"抖音视频_{video_id}"
+    raw_desc = (item_info.get("desc") or "").strip()
+    title = raw_desc or f"抖音视频_{video_id}"
     author = item_info.get("author", {}) or {}
     stats = item_info.get("statistics", {}) or {}
     video = item_info.get("video", {}) or {}
@@ -515,6 +516,7 @@ def _build_result(item_info: dict, video_id: str, original_url: str) -> dict[str
         "uploader": author.get("nickname"),
         "view_count": stats.get("play_count") or stats.get("digg_count"),
         "description": title[:200] or None,
+        "desc": raw_desc,
         "webpage_url": original_url,
         # 内部使用：直接下载 URL
         "play_url": play_url,
@@ -545,11 +547,12 @@ class DouyinParser:
         self._session = requests.Session()
         self._session.headers.update(DEFAULT_HEADERS)
 
-    def parse(self, url: str) -> dict[str, Any]:
+    def parse(self, url: str, *, require_play_url: bool = True) -> dict[str, Any]:
         """解析抖音视频 URL。
 
         Args:
             url: 抖音视频 URL 或包含链接的分享文本
+            require_play_url: 下载链路必须有播放地址；总结只需要文案时可关
 
         Returns:
             与 yt-dlp 兼容的视频信息 dict
@@ -557,26 +560,27 @@ class DouyinParser:
         Raises:
             DouyinUpstreamError: 解析失败
         """
-        # 1. 提取 URL 并跟随重定向
         try:
             share_url = _extract_url(url)
-            final_url = self._resolve_redirect(share_url)
         except ValueError as exc:
             raise DouyinUpstreamError(str(exc)) from exc
-        except requests.RequestException as exc:
-            raise DouyinUpstreamError(f"链接解析失败：{exc.__class__.__name__}") from exc
 
-        # 2. 提取 video_id
-        video_id = extract_video_id(final_url)
+        # jingxuan?modal_id= 等长链已带 ID，不必先打开精选页（易被拦）
+        video_id = extract_video_id(share_url)
+        if not video_id:
+            try:
+                final_url = self._resolve_redirect(share_url)
+            except ValueError as exc:
+                raise DouyinUpstreamError(str(exc)) from exc
+            except requests.RequestException as exc:
+                raise DouyinUpstreamError(f"链接解析失败：{exc.__class__.__name__}") from exc
+            video_id = extract_video_id(final_url)
         if not video_id:
             raise DouyinUpstreamError("无法从链接中提取视频ID，链接可能无效或已过期")
 
-        # 3. 拿原始 item（API 优先，失败走分享页）
         item_info = self._fetch_item_info(video_id)
-
-        # 4. 构建结果
         result = _build_result(item_info, video_id, url)
-        if not result.get("play_url"):
+        if require_play_url and not result.get("play_url"):
             raise DouyinUpstreamError("无法获取视频信息，可能链接已失效或需要登录")
 
         return result
@@ -775,9 +779,9 @@ def _get_parser() -> DouyinParser:
     return _parser
 
 
-def parse_video(url: str) -> dict[str, Any]:
+def parse_video(url: str, *, require_play_url: bool = True) -> dict[str, Any]:
     """解析抖音视频 URL（兼容旧 API）。"""
-    return _get_parser().parse(url)
+    return _get_parser().parse(url, require_play_url=require_play_url)
 
 
 def download_video(

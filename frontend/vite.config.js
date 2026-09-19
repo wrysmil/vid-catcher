@@ -7,7 +7,13 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5173,
     proxy: {
-      "/api": "http://127.0.0.1:8000",
+      "/api": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+        // SSE 总结/问答可能等待较久，避免 dev 代理提前断开
+        timeout: 600000,
+        proxyTimeout: 600000,
+      },
     },
   },
 });
