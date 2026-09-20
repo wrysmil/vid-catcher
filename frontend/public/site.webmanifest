@@ -1,0 +1,25 @@
+{
+  "name": "VidCatcher · 万能视频下载与 AI 总结工具",
+  "short_name": "VidCatcher",
+  "description": "万能视频下载工具，支持 YouTube、Bilibili、抖音、TikTok、Twitter 等 1800+ 平台在线解析与免费下载，并提供 AI 视频总结、字幕提取、视频思维导图与 AI 问答。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f9fc",
+  "theme_color": "#2f6fed",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

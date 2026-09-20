@@ -1075,3 +1075,167 @@ a {
     display: none;
   }
 }
+
+/* ───────────── GEO：使用教程 / FAQ / 关于 ───────────── */
+
+.how-to-steps {
+  width: min(1000px, calc(100% - 40px));
+  margin: 32px auto 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.how-to-step {
+  background: #fff;
+  border: 1px solid var(--line-light);
+  border-radius: 20px;
+  padding: 28px 22px;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.03);
+  position: relative;
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  margin-bottom: 14px;
+  box-shadow: 0 6px 16px rgba(47, 111, 237, 0.25);
+}
+
+.how-to-step h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.how-to-step p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.faq-item {
+  width: min(820px, calc(100% - 40px));
+  margin: 12px auto 0;
+  background: #fff;
+  border: 1px solid var(--line-light);
+  border-radius: 16px;
+  padding: 16px 22px;
+  text-align: left;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.03);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.faq-item:hover {
+  border-color: rgba(47, 111, 237, 0.2);
+}
+
+.faq-item[open] {
+  border-color: rgba(47, 111, 237, 0.35);
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.05);
+}
+
+.faq-item summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 15px;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink);
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::after {
+  content: "+";
+  font-size: 22px;
+  line-height: 1;
+  color: var(--blue);
+  font-weight: 500;
+  transition: transform 0.2s;
+}
+
+.faq-item[open] summary::after {
+  content: "−";
+}
+
+.faq-item p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.about-grid {
+  width: min(1000px, calc(100% - 40px));
+  margin: 32px auto 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.about-card {
+  background: #fff;
+  border: 1px solid var(--line-light);
+  border-radius: 20px;
+  padding: 26px 24px;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.03);
+}
+
+.about-card h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.about-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+@media (max-width: 920px) {
+  .how-to-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .how-to-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .about-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-links {
+    gap: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav-links::-webkit-scrollbar {
+    display: none;
+  }
+}

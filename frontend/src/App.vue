@@ -13,8 +13,11 @@
       </a>
       <nav class="nav-links">
         <a href="#features">功能特性</a>
-        <a href="#plans">套餐价格</a>
+        <a href="#how-to">使用教程</a>
+        <a href="#faq">常见问题</a>
         <a href="#platforms">支持平台</a>
+        <a href="#plans">套餐价格</a>
+        <a href="#about">关于项目</a>
       </nav>
       <button class="vip-btn" type="button" @click="showToast">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -241,6 +244,89 @@
         <p class="section-sub">几乎覆盖所有主流视频、音频、社交媒体平台</p>
         <div class="platforms">
           <span v-for="p in platforms" :key="p.name" class="platform-chip">{{ p.icon }} {{ p.name }}</span>
+        </div>
+      </section>
+
+      <section id="how-to" class="section alt">
+        <h2>3 步开始使用</h2>
+        <p class="section-sub">从粘贴链接到下载，再到 AI 总结</p>
+        <ol class="how-to-steps">
+          <li class="how-to-step">
+            <span class="step-num">01</span>
+            <h3>粘贴视频链接</h3>
+            <p>在首页输入框粘贴视频链接，支持空格或逗号分隔多个链接（YouTube、Bilibili、抖音、TikTok 等均可）。</p>
+          </li>
+          <li class="how-to-step">
+            <span class="step-num">02</span>
+            <h3>解析视频</h3>
+            <p>点击「解析视频」按钮，系统返回标题、缩略图、平台来源、清晰度选项（360p 至 4K）。</p>
+          </li>
+          <li class="how-to-step">
+            <span class="step-num">03</span>
+            <h3>选择清晰度并下载</h3>
+            <p>从清晰度网格中选择目标档位，点击「立即下载」开始下载。服务端代理模式可绕过防盗链平台限制。</p>
+          </li>
+          <li class="how-to-step">
+            <span class="step-num">04</span>
+            <h3>（可选）AI 视频总结</h3>
+            <p>点击「AI 总结」按钮，自动提取字幕后调用 AI 生成 Markdown 摘要、思维导图，可在四 Tab 间切换查看摘要 / 字幕 / 思维导图 / AI 问答。</p>
+          </li>
+        </ol>
+      </section>
+
+      <section id="faq" class="section">
+        <h2>常见问题</h2>
+        <p class="section-sub">关于 VidCatcher 的常见疑问</p>
+        <details class="faq-item" open>
+          <summary>VidCatcher 支持哪些视频平台？</summary>
+          <p>VidCatcher 基于 yt-dlp 引擎，支持 YouTube、Bilibili、抖音、TikTok、Twitter/X、Instagram、Facebook、Vimeo、SoundCloud 等 1800+ 全球主流视频与音频平台。</p>
+        </details>
+        <details class="faq-item">
+          <summary>VidCatcher 是免费的吗？</summary>
+          <p>是的，VidCatcher 提供永久免费的解析与下载能力，免费版最高支持 720p 清晰度。VIP 版支持无限下载、4K、字幕下载与 AI 视频总结等高级功能。</p>
+        </details>
+        <details class="faq-item">
+          <summary>VidCatcher 的 AI 视频总结功能是怎么工作的？</summary>
+          <p>解析视频后点击「AI 总结」，系统自动提取平台自带字幕（人工字幕优先，自动字幕次之），再调用 DeepSeek 大模型生成视频概述、核心要点、一句话总结、可交互思维导图，并支持基于字幕内容的多轮 AI 问答。</p>
+        </details>
+        <details class="faq-item">
+          <summary>手机端能用 VidCatcher 吗？</summary>
+          <p>可以。VidCatcher 采用响应式设计，在手机浏览器直接打开即用，无需安装 App。</p>
+        </details>
+        <details class="faq-item">
+          <summary>下载的视频清晰度由什么决定？</summary>
+          <p>由原平台提供的最高清晰度决定。VidCatcher 在解析结果中列出所有可选清晰度（360p 至 4K），用户可手动选择。</p>
+        </details>
+        <details class="faq-item">
+          <summary>VidCatcher 会保存我的下载历史或个人信息吗？</summary>
+          <p>不会。VidCatcher 不使用数据库，不记录用户账户、不持久化下载历史。临时文件定期清理。</p>
+        </details>
+        <details class="faq-item">
+          <summary>为什么我的视频下载失败了？</summary>
+          <p>常见原因：①视频有地区限制；②视频为会员专属内容；③视频为直播流；④平台更新了反爬策略（yt-dlp 通常 1-2 周内跟进）。可尝试更换视频或等待 yt-dlp 升级。</p>
+        </details>
+      </section>
+
+      <section id="about" class="section alt">
+        <h2>关于 VidCatcher</h2>
+        <p class="section-sub">一个开源的视频下载与 AI 内容理解学习项目</p>
+        <div class="about-grid">
+          <article class="about-card">
+            <h3>项目背景</h3>
+            <p>VidCatcher 是面向个人用户的跨平台视频下载与 AI 视频内容总结工具，旨在解决「多平台无法直接下载」「长视频内容理解成本高」两大痛点。</p>
+          </article>
+          <article class="about-card">
+            <h3>技术栈</h3>
+            <p>前端 Vue 3 + Vite；后端 Python 3 + FastAPI；视频引擎 yt-dlp（开源）；AI 模型 DeepSeek（OpenAI 兼容协议）。前后端分离，无数据库，临时文件定期清理。</p>
+          </article>
+          <article class="about-card">
+            <h3>开源与协议</h3>
+            <p>本项目为学习项目，仅供个人合法使用。请尊重版权，不要将服务公开部署为盗链站或用于对抗平台风控。视频解析能力完全来自开源 yt-dlp。</p>
+          </article>
+          <article class="about-card">
+            <h3>反馈与建议</h3>
+            <p>欢迎在 GitHub 仓库提 Issue 反馈问题与建议。VidCatcher 是学习项目，期待与社区一起迭代。</p>
+          </article>
         </div>
       </section>
 

@@ -1,0 +1,61 @@
+# /robots.txt — VidCatcher
+# 部署时将 http://localhost:5173 替换为正式域名（保留 protocol）
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /tasks/
+
+# LLM 友好摘要
+Allow: /llms.txt
+
+# 国内主流爬虫显式放行
+User-agent: Baiduspider
+Allow: /
+
+User-agent: 360Spider
+Allow: /
+
+User-agent: Sogou Spider
+Allow: /
+
+User-agent: YisouSpider
+Allow: /
+
+User-agent: HaosouSpider
+Allow: /
+
+# 国际爬虫
+User-agent: Bingbot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# AI / LLM 引擎（基于公开 UA）
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# 站点地图（部署时替换为正式域名）
+Sitemap: http://localhost:5173/sitemap.xml

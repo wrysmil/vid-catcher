@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f7f9fc"/>
+      <stop offset="100%" stop-color="#eef4ff"/>
+    </linearGradient>
+    <linearGradient id="logo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2f6fed"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <circle cx="1080" cy="60" r="220" fill="#2f6fed" opacity="0.08"/>
+  <circle cx="120" cy="610" r="180" fill="#2f6fed" opacity="0.06"/>
+  <circle cx="1140" cy="540" r="100" fill="#2f6fed" opacity="0.05"/>
+
+  <g transform="translate(100, 170)">
+    <rect width="140" height="140" rx="36" fill="url(#logo)"/>
+    <path d="M54 38v64a5 5 0 0 0 7.8 4.1L112 78a5 5 0 0 0 0-8.2L61.8 41.9A5 5 0 0 0 54 38z" fill="#ffffff"/>
+  </g>
+
+  <text x="100" y="430" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="96" font-weight="800" fill="#111827" letter-spacing="-2">VidCatcher</text>
+
+  <text x="100" y="490" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="500" fill="#6b7280">万能视频下载与 AI 总结工具 · 支持 1800+ 平台</text>
+
+  <g transform="translate(100, 530)" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="700">
+    <g>
+      <rect width="180" height="52" rx="26" fill="#ffffff" stroke="#2f6fed" stroke-width="2"/>
+      <text x="90" y="33" fill="#2f6fed" text-anchor="middle">1800+ 平台</text>
+    </g>
+    <g transform="translate(200, 0)">
+      <rect width="180" height="52" rx="26" fill="#ffffff" stroke="#2f6fed" stroke-width="2"/>
+      <text x="90" y="33" fill="#2f6fed" text-anchor="middle">AI 视频总结</text>
+    </g>
+    <g transform="translate(400, 0)">
+      <rect width="160" height="52" rx="26" fill="#ffffff" stroke="#2f6fed" stroke-width="2"/>
+      <text x="80" y="33" fill="#2f6fed" text-anchor="middle">多清晰度</text>
+    </g>
+    <g transform="translate(580, 0)">
+      <rect width="160" height="52" rx="26" fill="#ffffff" stroke="#2f6fed" stroke-width="2"/>
+      <text x="80" y="33" fill="#2f6fed" text-anchor="middle">永久免费</text>
+    </g>
+  </g>
+
+  <text x="1100" y="600" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="500" fill="#9ca3af" text-anchor="end">vidcatcher.example.com</text>
+</svg>
